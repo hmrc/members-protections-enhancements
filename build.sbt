@@ -14,6 +14,8 @@ lazy val microservice = Project("members-protections-enhancements", file("."))
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(CodeCoverageSettings.settings: _*)
 
+PlayKeys.playDefaultPort := 30030
+
 lazy val it = project
   .enablePlugins(PlayScala)
   .dependsOn(microservice % "test->test")
