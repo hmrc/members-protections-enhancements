@@ -1,23 +1,45 @@
 import uk.gov.hmrc.DefaultBuildSettings
+import uk.gov.hmrc.DefaultBuildSettings.defaultSettings
 
-ThisBuild / majorVersion := 0
-ThisBuild / scalaVersion := "2.13.12"
+val appName = "members-protections-enhancements"
 
-lazy val microservice = Project("members-protections-enhancements", file("."))
-  .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
+inThisBuild(
+  List(
+    scalaVersion := "2.13.16",
+    majorVersion := 0,
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
+  )
+)
+
+lazy val microservice = Project(appName, file("."))
+  .enablePlugins(PlayScala, SbtDistributablesPlugin)
+  .disablePlugins(JUnitXmlReportPlugin)
   .settings(
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
-    // https://www.scala-lang.org/2021/01/12/configuring-and-suppressing-warnings.html
-    // suppress warnings in generated routes files
-    scalacOptions += "-Wconf:src=routes/.*:s",
+    scalafmtOnCompile := true,
+    scalafixOnCompile := true,
+    PlayKeys.playDefaultPort := 30030
   )
-  .settings(resolvers += Resolver.jcenterRepo)
+  .settings(scalacOptions ++= Seq(
+    "-feature",
+    "-deprecation",
+    "-Wconf:msg=unused import&src=conf/.*:s",
+    "-Wconf:msg=Flag.*repeatedly:s",
+    "-Wconf:src=routes/.*:s")
+  )
   .settings(CodeCoverageSettings.settings: _*)
 
-PlayKeys.playDefaultPort := 30030
-
 lazy val it = project
+  .in(file("it"))
   .enablePlugins(PlayScala)
-  .dependsOn(microservice % "test->test")
+  .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(DefaultBuildSettings.itSettings())
-  .settings(libraryDependencies ++= AppDependencies.it)
+  .settings(
+    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
+    Test / fork := true,
+    Test / scalafmtOnCompile := true,
+    Test / unmanagedResourceDirectories += baseDirectory.value / "it" / "test" / "resources"
+  )
+
+addCommandAlias("testc", "; clean ; coverage ; test ; it/test ; coverageReport ;")

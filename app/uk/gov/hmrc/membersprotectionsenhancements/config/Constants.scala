@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.config
 
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{AuthenticatedIdentifierAction, IdentifierAction}
-import com.google.inject.AbstractModule
+object Constants {
 
-class Module extends AbstractModule {
+  val psaEnrolmentKey = "HMRC-PODS-ORG"
+  val pspEnrolmentKey = "HMRC-PODSPP-ORG"
 
-  override def configure(): Unit = {
-    bind(classOf[AppConfig]).asEagerSingleton()
-    bind(classOf[IdentifierAction]).to(classOf[AuthenticatedIdentifierAction]).asEagerSingleton()
-  }
+  val psaId = "PSAID"
+  val pspId = "PSPID"
+
+  val PSA = "PSA"
+  val PSP = "PSP"
 
 }
