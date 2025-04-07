@@ -16,11 +16,16 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.config
 
-import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 
+import javax.inject.{Inject, Singleton}
+
 @Singleton
-class AppConfig @Inject()(config: Configuration) {
+class AppConfig @Inject() (config: Configuration) {
 
   val appName: String = config.get[String]("appName")
+
+  val loginUrl: String = config.get[String]("urls.login")
+  val loginContinueUrl: String = config.get[String]("urls.loginContinue")
+  val redirectUrl = s"$loginUrl?continue=http%3A%2F%2Flocalhost%3A6741$loginContinueUrl"
 }

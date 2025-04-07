@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
+package models
 
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{AuthenticatedIdentifierAction, IdentifierAction}
-import com.google.inject.AbstractModule
+sealed trait PensionSchemeId { self =>
 
-class Module extends AbstractModule {
+  val value: String
+}
 
-  override def configure(): Unit = {
-    bind(classOf[AppConfig]).asEagerSingleton()
-    bind(classOf[IdentifierAction]).to(classOf[AuthenticatedIdentifierAction]).asEagerSingleton()
-  }
+object PensionSchemeId {
+
+  case class PspId(value: String) extends PensionSchemeId
+
+  case class PsaId(value: String) extends PensionSchemeId
 
 }
