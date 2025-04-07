@@ -26,7 +26,10 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.Identifie
 import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import play.api.mvc.Results._
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{AdministratorRequest, PractitionerRequest}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{
+  AdministratorRequest,
+  PractitionerRequest
+}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,10 +37,13 @@ import scala.concurrent.{ExecutionContext, Future}
 trait IdentifierAction extends ActionBuilder[IdentifierRequest, AnyContent]
 
 @Singleton
-class AuthenticatedIdentifierAction @Inject()(override val authConnector: AuthConnector,
-                                              config: AppConfig,
-                                              playBodyParsers: BodyParsers.Default)
-                                             (implicit override val executionContext: ExecutionContext) extends IdentifierAction with AuthorisedFunctions {
+class AuthenticatedIdentifierAction @Inject() (
+  override val authConnector: AuthConnector,
+  config: AppConfig,
+  playBodyParsers: BodyParsers.Default
+)(implicit override val executionContext: ExecutionContext)
+    extends IdentifierAction
+    with AuthorisedFunctions {
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
 
@@ -48,12 +54,14 @@ class AuthenticatedIdentifierAction @Inject()(override val authConnector: AuthCo
 
         case Some(internalId) ~ IsPSA(psaId) => block(AdministratorRequest(internalId, request, psaId.value))
         case Some(internalId) ~ IsPSP(pspId) => block(PractitionerRequest(internalId, request, pspId.value))
-        case Some(_) ~ _ => Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-        case _ => Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-      } recoverWith {
-      case _ =>
+        case Some(_) ~ _ =>
+          Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+        case _ =>
+          Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+      }
+      .recoverWith { case _ =>
         Future.successful(BadRequest(""))
-    }
+      }
   }
 
   override def parser: BodyParser[AnyContent] = playBodyParsers

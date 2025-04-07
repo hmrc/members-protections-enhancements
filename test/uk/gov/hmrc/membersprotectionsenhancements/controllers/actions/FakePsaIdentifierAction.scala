@@ -25,11 +25,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.Inject
 
-class FakePsaIdentifierAction @Inject()(bodyParsers: BodyParsers.Default) extends IdentifierAction with ModelGenerators {
+class FakePsaIdentifierAction @Inject() (bodyParsers: BodyParsers.Default)
+    extends IdentifierAction
+    with ModelGenerators {
 
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
+  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
     block(AdministratorRequest(userId = "id", request, psaId = "A2100001"))
-  }
 
   override def parser: BodyParser[AnyContent] = bodyParsers
 

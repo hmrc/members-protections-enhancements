@@ -28,17 +28,17 @@ import uk.gov.hmrc.auth.core._
 import play.api.Application
 import play.api.libs.json.Json
 import org.mockito.ArgumentMatchers.any
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{AdministratorRequest, PractitionerRequest}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{
+  AdministratorRequest,
+  PractitionerRequest
+}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuthenticatedIdentifierActionSpec extends SpecBase with StubPlayBodyParsersFactory {
 
   def authAction(appConfig: AppConfig) =
-    new AuthenticatedIdentifierAction(
-      mockAuthConnector,
-      appConfig,
-      bodyParsers)(ExecutionContext.global)
+    new AuthenticatedIdentifierAction(mockAuthConnector, appConfig, bodyParsers)(ExecutionContext.global)
 
   class Handler(appConfig: AppConfig) {
     def run: Action[AnyContent] = authAction(appConfig) { request =>
@@ -57,7 +57,7 @@ class AuthenticatedIdentifierActionSpec extends SpecBase with StubPlayBodyParser
   def handler(implicit app: Application): Handler = new Handler(appConfig)
 
   def authResult(internalId: Option[String], enrolments: Enrolment*) =
-    new~(internalId, Enrolments(enrolments.toSet))
+    new ~(internalId, Enrolments(enrolments.toSet))
 
   val psaEnrolment: Enrolment =
     Enrolment(Constants.psaEnrolmentKey, Seq(EnrolmentIdentifier(Constants.psaId, "A2100001")), "Activated")
@@ -95,11 +95,10 @@ class AuthenticatedIdentifierActionSpec extends SpecBase with StubPlayBodyParser
         redirectLocation(result) mustBe None
       }
 
-      "when user does not have psa or psp enrolment" in runningApplication {
-        implicit app =>
-          setAuthValue(authResult(Some("internalId")))
-          val result = handler.run(FakeRequest())
-          redirectLocation(result) mustBe None
+      "when user does not have psa or psp enrolment" in runningApplication { implicit app =>
+        setAuthValue(authResult(Some("internalId")))
+        val result = handler.run(FakeRequest())
+        redirectLocation(result) mustBe None
       }
     }
 
@@ -128,4 +127,3 @@ class AuthenticatedIdentifierActionSpec extends SpecBase with StubPlayBodyParser
     }
   }
 }
-

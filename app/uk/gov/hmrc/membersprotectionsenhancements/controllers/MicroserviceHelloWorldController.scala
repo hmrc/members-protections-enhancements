@@ -27,6 +27,6 @@ import javax.inject.{Inject, Singleton}
 class MicroserviceHelloWorldController @Inject() (cc: ControllerComponents) extends BackendController(cc) {
 
   def hello(): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok("Hello world"))
+    Future.successful(Ok(request.rawQueryString))
   }
 }

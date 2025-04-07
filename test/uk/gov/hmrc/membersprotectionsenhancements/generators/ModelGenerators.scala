@@ -20,29 +20,29 @@ import play.api.mvc.Request
 import models.PensionSchemeId.{PsaId, PspId}
 import org.scalacheck.Gen
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{AdministratorRequest, PractitionerRequest}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{
+  AdministratorRequest,
+  PractitionerRequest
+}
 
 trait ModelGenerators extends Generators {
 
   val psaIdGen: Gen[PsaId] = nonEmptyString.map(PsaId)
   val pspIdGen: Gen[PspId] = nonEmptyString.map(PspId)
 
-  def administratorRequestGen[A](request: Request[A]): Gen[AdministratorRequest[A]] = {
+  def administratorRequestGen[A](request: Request[A]): Gen[AdministratorRequest[A]] =
     for {
       userId <- nonEmptyString
       psaId <- psaIdGen
     } yield AdministratorRequest(userId, request, psaId)
-  }
 
-  def practitionerRequestGen[A](request: Request[A]): Gen[PractitionerRequest[A]] = {
+  def practitionerRequestGen[A](request: Request[A]): Gen[PractitionerRequest[A]] =
     for {
       userId <- nonEmptyString
       psaId <- pspIdGen
     } yield PractitionerRequest(userId, request, psaId)
-  }
 
   def identifierRequestGen[A](request: Request[A]): Gen[IdentifierRequest[A]] =
     Gen.oneOf(administratorRequestGen[A](request), practitionerRequestGen[A](request))
-
 
 }

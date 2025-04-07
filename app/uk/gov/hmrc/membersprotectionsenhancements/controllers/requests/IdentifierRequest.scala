@@ -19,23 +19,21 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 import play.api.mvc.{Request, WrappedRequest}
 import models.PensionSchemeId.{PsaId, PspId}
 
-sealed abstract class IdentifierRequest[A] (request: Request[A]) extends WrappedRequest[A](request) { self =>
+sealed abstract class IdentifierRequest[A](request: Request[A]) extends WrappedRequest[A](request) { self =>
   val userId: String
 }
 
 object IdentifierRequest {
-  case class AdministratorRequest[A](userId: String,
-                                     request: Request[A],
-                                     psaId: PsaId) extends IdentifierRequest[A](request)
+  case class AdministratorRequest[A](userId: String, request: Request[A], psaId: PsaId)
+      extends IdentifierRequest[A](request)
 
   object AdministratorRequest {
     def apply[A](userId: String, request: Request[A], psaId: String): IdentifierRequest[A] =
       AdministratorRequest(userId, request, PsaId(psaId))
   }
 
-  case class PractitionerRequest[A](userId: String,
-                                    request: Request[A],
-                                    pspId: PspId) extends IdentifierRequest[A](request)
+  case class PractitionerRequest[A](userId: String, request: Request[A], pspId: PspId)
+      extends IdentifierRequest[A](request)
 
   object PractitionerRequest {
     def apply[A](userId: String, request: Request[A], pspId: String): IdentifierRequest[A] =

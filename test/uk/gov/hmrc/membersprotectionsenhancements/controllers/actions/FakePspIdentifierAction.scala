@@ -25,11 +25,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.Inject
 
-class FakePspIdentifierAction @Inject()(bodyParsers: PlayBodyParsers) extends IdentifierAction with ModelGenerators {
+class FakePspIdentifierAction @Inject() (bodyParsers: PlayBodyParsers) extends IdentifierAction with ModelGenerators {
 
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
+  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
     block(PractitionerRequest(userId = "id", request, pspId = "21000002"))
-  }
 
   override def parser: BodyParser[AnyContent] =
     bodyParsers.default

@@ -50,7 +50,7 @@ import scala.reflect.ClassTag
 import java.net.URLEncoder
 
 trait SpecBase
-  extends AnyFreeSpec
+    extends AnyFreeSpec
     with Matchers
     with TryValues
     with OptionValues
@@ -59,7 +59,6 @@ trait SpecBase
     with MockitoSugar
     with BeforeAndAfterEach
     with GuiceOneAppPerSuite {
-
 
   val parsers = app.injector.instanceOf[BodyParsers.Default]
 
