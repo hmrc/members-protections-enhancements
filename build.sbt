@@ -18,7 +18,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     scalafmtOnCompile := true,
-    //scalafixOnCompile := true,
+    scalafixOnCompile := true,
     PlayKeys.playDefaultPort := 30030
   )
   .settings(scalacOptions ++= Seq(
