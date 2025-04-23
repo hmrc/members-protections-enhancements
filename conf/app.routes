@@ -1,4 +1,5 @@
 # microservice specific routes
 
+POST       /submit              uk.gov.hmrc.membersprotectionsenhancements.controllers.MembersDetailsController.submitAndRetrieveMembersPensionSchemes
 
 

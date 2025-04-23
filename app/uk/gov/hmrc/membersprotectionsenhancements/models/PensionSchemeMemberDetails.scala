@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+package uk.gov.hmrc.membersprotectionsenhancements.models
 
-import javax.inject.{Inject, Singleton}
+import play.api.libs.json.{Json, OFormat}
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+import java.time.LocalDate
 
-  val appName: String = config.getString("appName")
+case class PensionSchemeMemberDetails(firstName: String,
+                                      lastName: String,
+                                      dateOfBirth: LocalDate,
+                                      nino: String,
+                                      psaCheckRef: String)
 
-  lazy val stubBaseUrl: String = config.baseUrl("stub")
+
+
+object PensionSchemeMemberDetails {
+  implicit val format: OFormat[PensionSchemeMemberDetails] = Json.format[PensionSchemeMemberDetails]
 }
