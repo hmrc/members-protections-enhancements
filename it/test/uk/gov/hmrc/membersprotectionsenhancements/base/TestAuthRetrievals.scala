@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+package uk.gov.hmrc.membersprotectionsenhancements.base
 
-import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.auth.core.retrieve.~
 
-@Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
-
-  val appName: String = config.getString("appName")
-
-  lazy val stubBaseUrl: String = config.baseUrl("stub")
+object TestAuthRetrievals {
+  implicit class Ops[A](a: A) {
+    def ~[B](b: B): A ~ B = new ~(a, b)
+  }
 }

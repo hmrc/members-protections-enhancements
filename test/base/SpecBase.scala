@@ -60,7 +60,7 @@ trait SpecBase
     with BeforeAndAfterEach
     with GuiceOneAppPerSuite {
 
-  val parsers = app.injector.instanceOf[BodyParsers.Default]
+  val parsers: BodyParsers.Default = app.injector.instanceOf[BodyParsers.Default]
 
   private val fakePsaIdentifierAction: FakePsaIdentifierAction = new FakePsaIdentifierAction(parsers)
 
