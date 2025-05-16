@@ -29,19 +29,19 @@ object MpeError {
 }
 
 object UnauthorisedError
-  extends MpeError(
-    code = "CLIENT_OR_AGENT_NOT_AUTHORISED",
-    message = "The client and/or agent is not authorised"
-  )
+    extends MpeError(
+      code = "CLIENT_OR_AGENT_NOT_AUTHORISED",
+      message = "The client and/or agent is not authorised"
+    )
 
 object InvalidBearerTokenError
-  extends MpeError(
-    code = "UNAUTHORIZED",
-    message = "Bearer token is missing or not authorized"
-  )
+    extends MpeError(
+      code = "UNAUTHORIZED",
+      message = "Bearer token is missing or not authorized"
+    )
 
 object InternalError
-  extends MpeError(
-    code = "INTERNAL_SERVER_ERROR",
-    message = "An internal server error occurred"
-  )
+    extends MpeError(
+      code = "INTERNAL_SERVER_ERROR",
+      message = "An internal server error occurred"
+    )

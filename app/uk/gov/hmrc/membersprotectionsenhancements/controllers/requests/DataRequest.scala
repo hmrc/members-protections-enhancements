@@ -18,9 +18,6 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
 import play.api.mvc.{Request, WrappedRequest}
 
-case class OptionalDataRequest[A] (request: Request[A],
-                                   userDetails: UserDetails) extends WrappedRequest[A](request)
+case class OptionalDataRequest[A](request: Request[A], userDetails: UserDetails) extends WrappedRequest[A](request)
 
-case class DataRequest[A] (
-                            request: Request[A],
-                            userDetails: UserDetails) extends WrappedRequest[A](request)
+case class DataRequest[A](request: Request[A], userDetails: UserDetails) extends WrappedRequest[A](request)

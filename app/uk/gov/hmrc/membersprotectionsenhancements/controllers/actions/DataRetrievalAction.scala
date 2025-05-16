@@ -24,9 +24,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.Inject
 
-class DataRetrievalActionImpl @Inject()()(implicit val executionContext: ExecutionContext) extends DataRetrievalAction {
+class DataRetrievalActionImpl @Inject() ()(implicit val executionContext: ExecutionContext)
+    extends DataRetrievalAction {
 
-  override protected def transform[A](request: IdentifierRequest[A]): Future[DataRequest[A]] = Future.successful(DataRequest(request, request.userDetails))
+  override protected def transform[A](request: IdentifierRequest[A]): Future[DataRequest[A]] =
+    Future.successful(DataRequest(request, request.userDetails))
 }
 
 @ImplementedBy(classOf[DataRetrievalActionImpl])

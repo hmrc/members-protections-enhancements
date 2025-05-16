@@ -26,7 +26,7 @@ import java.time.format.DateTimeFormatter
 
 object MpeReads {
 
-   def name(implicit reads: Reads[String]): Reads[String] =
+  def name(implicit reads: Reads[String]): Reads[String] =
     pattern(
       """^[a-zA-Z\-' ]{1,35}+$""".r,
       "error.name"
@@ -48,8 +48,7 @@ object MpeReads {
     (json: JsValue) => Try(JsSuccess(LocalDate.parse(json.as[String], datePattern), JsPath)).getOrElse(JsError())
 
   implicit class ReadsWithError[T](reads: Reads[T]) {
-    def orError(msg: String): Reads[T] = {
+    def orError(msg: String): Reads[T] =
       reads.orElse((json: JsValue) => JsError(__, msg))
-    }
   }
 }

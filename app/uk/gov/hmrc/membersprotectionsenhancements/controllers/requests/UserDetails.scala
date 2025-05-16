@@ -18,8 +18,4 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
 import uk.gov.hmrc.auth.core.AffinityGroup
 
-case class UserDetails(psrUserType: UserType,
-                       psrUserId: String,
-                       userId: String,
-                       affinityGroup: AffinityGroup)
-
+case class UserDetails(psrUserType: UserType, psrUserId: String, userId: String, affinityGroup: AffinityGroup)

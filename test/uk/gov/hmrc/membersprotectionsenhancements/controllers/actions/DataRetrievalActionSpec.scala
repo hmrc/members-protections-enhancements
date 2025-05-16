@@ -41,7 +41,9 @@ class DataRetrievalActionSpec extends SpecBase with MockitoSugar {
 
         val action = new Harness()
         val userDetails = UserDetails(PSA, "A2100001", "id", AffinityGroup.Individual)
-        val result = action.callTransform(AdministratorRequest.apply(AffinityGroup.Individual, "id", "A2100001", PSA, FakeRequest())).futureValue
+        val result = action
+          .callTransform(AdministratorRequest.apply(AffinityGroup.Individual, "id", "A2100001", PSA, FakeRequest()))
+          .futureValue
 
         result.userDetails mustBe userDetails
       }

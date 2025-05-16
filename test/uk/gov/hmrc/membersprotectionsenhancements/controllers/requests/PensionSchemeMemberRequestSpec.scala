@@ -23,8 +23,7 @@ import java.time.LocalDate
 
 class PensionSchemeMemberRequestSpec extends SpecBase {
 
-  val json: JsValue = Json.parse(
-    """
+  val json: JsValue = Json.parse("""
       |{
       |    "firstName": "Naren",
       |    "lastName": "Vijay",
@@ -33,8 +32,8 @@ class PensionSchemeMemberRequestSpec extends SpecBase {
       |    "psaCheckRef":"PSA12345678A"
       |}""".stripMargin)
 
-  val model: PensionSchemeMemberRequest = PensionSchemeMemberRequest("Naren", "Vijay",
-    LocalDate.of(2024, 12, 31), "QQ123456C", "PSA12345678A")
+  val model: PensionSchemeMemberRequest =
+    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "QQ123456C", "PSA12345678A")
 
   "PensionSchemeMemberRequest" - {
     "return a valid model" in {
@@ -42,8 +41,7 @@ class PensionSchemeMemberRequestSpec extends SpecBase {
     }
 
     "return a error for invalid data" in {
-      val invalidJson: JsValue = Json.parse(
-        """
+      val invalidJson: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
@@ -57,8 +55,7 @@ class PensionSchemeMemberRequestSpec extends SpecBase {
     }
 
     "return a error for invalid date format" in {
-      val invalidJson: JsValue = Json.parse(
-        """
+      val invalidJson: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
