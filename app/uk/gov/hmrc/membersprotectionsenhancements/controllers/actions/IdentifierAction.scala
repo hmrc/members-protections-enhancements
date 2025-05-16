@@ -18,17 +18,24 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 
 import play.api.mvc._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{affinityGroup, authorisedEnrolments, internalId}
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.~
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{IdentifierRequest, UserType}
 import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import play.api.mvc.Results._
+import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{
   AdministratorRequest,
   PractitionerRequest
+}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
+  InternalError,
+  InvalidBearerTokenError,
+  UnauthorisedError
 }
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,37 +50,52 @@ class AuthenticatedIdentifierAction @Inject() (
   playBodyParsers: BodyParsers.Default
 )(implicit override val executionContext: ExecutionContext)
     extends IdentifierAction
-    with AuthorisedFunctions {
+    with AuthorisedFunctions
+    with Logging {
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
 
-    implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequestAndSession(request, request.session)
+    implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
     authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
-      .retrieve(Retrievals.internalId.and(Retrievals.authorisedEnrolments)) {
+      .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
 
-        case Some(internalId) ~ IsPSA(psaId) => block(AdministratorRequest(internalId, request, psaId.value))
-        case Some(internalId) ~ IsPSP(pspId) => block(PractitionerRequest(internalId, request, pspId.value))
-        case Some(_) ~ _ =>
+        case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
+          block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, request))
+        case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
+          block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, request))
+        case Some(_) ~ Some(_) ~ _ =>
           Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
         case _ =>
           Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
       }
-      .recoverWith { case _ =>
-        Future.successful(BadRequest(""))
+      .recoverWith {
+        case e: MissingBearerToken =>
+          logger.warn(
+            s"[AuthenticatedIdentifierAction][invokeBlock - MissingBearerToken] An unexpected error occurred: ${e.printStackTrace()}"
+          )
+          Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
+        case e: AuthorisationException =>
+          logger.warn(
+            s"[AuthenticatedIdentifierAction][invokeBlock - AuthorisationException] An unexpected error occurred: ${e.printStackTrace()}"
+          )
+          Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
+        case error =>
+          logger.warn(s"[AuthenticatedIdentifierAction][invokeBlock - authorised] An unexpected error occurred: $error")
+          Future.successful(InternalServerError(Json.toJson(InternalError)))
       }
   }
 
   override def parser: BodyParser[AnyContent] = playBodyParsers
 
-  object IsPSA {
+  private object IsPSA {
     def unapply(enrolments: Enrolments): Option[EnrolmentIdentifier] =
       enrolments.enrolments
         .find(_.key == Constants.psaEnrolmentKey)
         .flatMap(_.getIdentifier(Constants.psaId))
   }
 
-  object IsPSP {
+  private object IsPSP {
     def unapply(enrolments: Enrolments): Option[EnrolmentIdentifier] =
       enrolments.enrolments
         .find(_.key == Constants.pspEnrolmentKey)

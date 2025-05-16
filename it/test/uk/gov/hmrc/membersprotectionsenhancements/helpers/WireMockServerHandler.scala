@@ -60,18 +60,18 @@ trait WireMockServerHandler extends BeforeAndAfterAll with BeforeAndAfterEach {
     )
 
   protected def stubRequest(
-    method:         String,
-    expectedUrl:    String,
+    method: String,
+    expectedUrl: String,
     expectedStatus: Int,
-    body:           JsValue,
-    headers:        Map[String, String] = Map.empty
+    body: JsValue,
+    headers: Map[String, String] = Map.empty
   ): StubMapping = {
     val methodMapping = method.toUpperCase match {
-      case GET    => get(urlEqualTo(expectedUrl))
-      case POST   => post(urlEqualTo(expectedUrl))
-      case PUT    => put(urlEqualTo(expectedUrl))
+      case GET => get(urlEqualTo(expectedUrl))
+      case POST => post(urlEqualTo(expectedUrl))
+      case PUT => put(urlEqualTo(expectedUrl))
       case DELETE => delete(urlEqualTo(expectedUrl))
-      case _      => throw new IllegalArgumentException(s"Unsupported HTTP method: $method")
+      case _ => throw new IllegalArgumentException(s"Unsupported HTTP method: $method")
     }
 
     val mappingWithHeaders = headers.foldLeft(methodMapping) { case (mapping, (key, value)) =>

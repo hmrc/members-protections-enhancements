@@ -18,22 +18,19 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import play.api.test.FakeRequest
 import play.api.Play.materializer
-import play.api.inject.bind
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers.{contentAsJson, defaultAwaitTimeout, status}
 import org.mockito.Mockito.reset
 import base.SpecBase
 import uk.gov.hmrc.auth.core.AuthConnector
-import play.api.Application
-import play.api.libs.json.{JsValue, Json}
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, OK}
 import uk.gov.hmrc.http.HeaderCarrier
 
 class MembersDetailsControllerSpec extends SpecBase {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
-  private val fakeRequest = FakeRequest("POST", "/members-protections-enhancements/submit")
+  private val fakeRequest = FakeRequest("POST", "/members-protections-enhancements/check-and-retrieve")
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
   private val mockAppConfig: AppConfig = mock[AppConfig]
 
@@ -42,19 +39,12 @@ class MembersDetailsControllerSpec extends SpecBase {
     reset(mockAppConfig)
   }
 
-  val application: Application = new GuiceApplicationBuilder()
-    .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false)
-    .overrides(bind[AppConfig].toInstance(mockAppConfig),
-      bind[AuthConnector].toInstance(mockAuthConnector))
-    .build()
-
-  private val controller = application.injector.instanceOf[MembersDetailsController]
+  private val controller = applicationBuilder.build().injector.instanceOf[MembersDetailsController]
 
   "Member Details Controller" - {
     "should return 200 for a valid members data" in {
 
-      val json: JsValue = Json.parse(
-        """
+      val json: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
@@ -63,8 +53,7 @@ class MembersDetailsControllerSpec extends SpecBase {
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      val response = Json.parse(
-        """{
+      val response = Json.parse("""{
           |"statusCode": "200",
           |"message": "search successful, member details exists"
           |}""".stripMargin)
@@ -76,8 +65,7 @@ class MembersDetailsControllerSpec extends SpecBase {
 
     "should return 404 when no results found" in {
 
-      val json: JsValue = Json.parse(
-        """
+      val json: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "lastname",
@@ -86,8 +74,7 @@ class MembersDetailsControllerSpec extends SpecBase {
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      val response = Json.parse(
-        """{
+      val response = Json.parse("""{
           |"statusCode": "404",
           |"message": "search failed, no details found with the member details provided"
           |}""".stripMargin)
@@ -100,8 +87,7 @@ class MembersDetailsControllerSpec extends SpecBase {
 
     "should return 400 when invalid or insufficient data submitted" in {
 
-      val json: JsValue = Json.parse(
-        """
+      val json: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "lastname",
@@ -109,10 +95,9 @@ class MembersDetailsControllerSpec extends SpecBase {
           |    "nino": "QQ123456C"
           |}""".stripMargin)
 
-      val response = Json.parse(
-        s"""{
+      val response = Json.parse(s"""{
            |"statusCode": "400",
-           |"message": "Invalid json format (/psaCheckRef,List(JsonValidationError(List(error.path.missing),List())))"
+           |"message": "Invalid json format (,List(JsonValidationError(List(Missing or invalid psaCheckRef),List())))"
            |}""".stripMargin)
 
       val postRequest = fakeRequest.withBody(json)

@@ -1,0 +1,46 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
+
+import play.api.libs.json._
+import uk.gov.hmrc.membersprotectionsenhancements.utils.MpeReads._
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+
+import java.time.LocalDate
+
+case class PensionSchemeMemberRequest(
+  firstName: String,
+  lastName: String,
+  dateOfBirth: LocalDate,
+  nino: String,
+  psaCheckRef: String
+)
+
+object PensionSchemeMemberRequest {
+  implicit val reads: Reads[PensionSchemeMemberRequest] =
+    (JsPath \ "firstName")
+      .read[String](name)
+      .orError("Missing or invalid firstName")
+      .and((__ \ "lastName").read[String](name).orError("Missing or invalid lastName"))
+      .and((__ \ "dateOfBirth").read[LocalDate](dateReads).orError("Missing or invalid dateOfBirth"))
+      .and((__ \ "nino").read[String](nino).orError("Missing or invalid nino"))
+      .and((__ \ "psaCheckRef").read[String](psaCheckRef).orError("Missing or invalid psaCheckRef"))(
+        PensionSchemeMemberRequest.apply _
+      )
+
+  implicit val writes: OWrites[PensionSchemeMemberRequest] = Json.writes[PensionSchemeMemberRequest]
+}
