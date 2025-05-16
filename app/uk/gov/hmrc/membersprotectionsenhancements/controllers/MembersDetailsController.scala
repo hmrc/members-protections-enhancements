@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.IdentifierAction
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{DataRetrievalAction, IdentifierAction}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.membersprotectionsenhancements.models.PensionSchemeMemberDetails
 import play.api.libs.json._
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,46 +28,43 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersDetailsController @Inject()(
-  cc:               ControllerComponents,
-  identify:         IdentifierAction
-)(implicit ec:      ExecutionContext)
+class MembersDetailsController @Inject() (
+  cc: ControllerComponents,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction
+)(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
-  def submitAndRetrieveMembersPensionSchemes: Action[JsValue] = Action.async(parse.json) { request =>
+  def submitAndRetrieveMembersPensionSchemes: Action[JsValue] = identify.andThen(getData).async(parse.json) { request =>
     HeaderCarrierConverter.fromRequest(request)
-    
+
 //    val response = orchestrators.submitAndRetrieveMembersPensionSchemes(request.rawQueryString)
 //    response.map(body => Ok(Json.toJson(body)))
-    request.body.validate[PensionSchemeMemberDetails] match {
-          case JsSuccess(value, _) =>
-            if(value.lastName.equalsIgnoreCase("lastname")){
-              val response = Json.parse(
-                """{
+    request.body.validate[PensionSchemeMemberRequest] match {
+      case JsSuccess(value, _) =>
+        if (value.lastName.equalsIgnoreCase("lastname")) {
+          val response = Json.parse("""{
                   |"statusCode": "404",
                   |"message": "search failed, no details found with the member details provided"
                   |}""".stripMargin)
 
-              Future.successful(NotFound(response))
-            }
-            else {
-              val response = Json.parse(
-                """{
+          Future.successful(NotFound(response))
+        } else {
+          val response = Json.parse("""{
                   |"statusCode": "200",
                   |"message": "search successful, member details exists"
                   |}""".stripMargin)
 
-              Future.successful(Ok(response))
-            }
+          Future.successful(Ok(response))
+        }
 
-          case JsError(Seq(e)) =>
-            val response = Json.parse(
-              s"""{
+      case JsError(Seq(e)) =>
+        val response = Json.parse(s"""{
                 |"statusCode": "400",
                 |"message": "Invalid json format ${e.toString()}"
                 |}""".stripMargin)
 
-            Future.successful(BadRequest(response))
+        Future.successful(BadRequest(response))
     }
   }
 }

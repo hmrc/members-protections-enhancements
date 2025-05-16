@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
+package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
-import com.google.inject.AbstractModule
+import play.api.Logger
 
-class Module extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[AppConfig]).asEagerSingleton()
-    bind(classOf[IdentifierAction]).to(classOf[AuthenticatedIdentifierAction]).asEagerSingleton()
-    bind(classOf[DataRetrievalAction]).to(classOf[DataRetrievalActionImpl]).asEagerSingleton()
-  }
-
+trait Logging {
+  lazy val logger: Logger = Logger(this.getClass)
 }

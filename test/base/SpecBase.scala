@@ -33,7 +33,7 @@
 package base
 
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{FakePsaIdentifierAction, IdentifierAction}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
 import org.scalatest.matchers.must.Matchers
 import play.api.mvc.BodyParsers
 import play.api.inject.bind
@@ -67,7 +67,8 @@ trait SpecBase
   protected def applicationBuilder(): GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .overrides(
-        bind[IdentifierAction].toInstance(fakePsaIdentifierAction)
+        bind[IdentifierAction].toInstance(fakePsaIdentifierAction),
+        bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction)
       )
 
   def runningApplication(block: Application => Unit): Unit =

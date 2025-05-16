@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
+package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
-import com.google.inject.AbstractModule
+import play.api.mvc.{Request, WrappedRequest}
 
-class Module extends AbstractModule {
+case class OptionalDataRequest[A] (request: Request[A],
+                                   userDetails: UserDetails) extends WrappedRequest[A](request)
 
-  override def configure(): Unit = {
-    bind(classOf[AppConfig]).asEagerSingleton()
-    bind(classOf[IdentifierAction]).to(classOf[AuthenticatedIdentifierAction]).asEagerSingleton()
-    bind(classOf[DataRetrievalAction]).to(classOf[DataRetrievalActionImpl]).asEagerSingleton()
-  }
-
-}
+case class DataRequest[A] (
+                            request: Request[A],
+                            userDetails: UserDetails) extends WrappedRequest[A](request)
