@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserType.PSP
 import play.api.mvc._
-import uk.gov.hmrc.membersprotectionsenhancements.generators.ModelGenerators
+import uk.gov.hmrc.auth.core.AffinityGroup
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.PractitionerRequest
 
@@ -25,13 +26,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.Inject
 
-class FakePspIdentifierAction @Inject() (bodyParsers: PlayBodyParsers) extends IdentifierAction with ModelGenerators {
+class FakePspIdentifierAction @Inject() (bodyParsers: BodyParsers.Default) extends IdentifierAction {
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
-    block(PractitionerRequest(userId = "id", request, pspId = "21000002"))
+    block(PractitionerRequest(AffinityGroup.Individual, "id", "21000002", PSP, request))
 
-  override def parser: BodyParser[AnyContent] =
-    bodyParsers.default
+  override def parser: BodyParser[AnyContent] = bodyParsers
 
   override protected def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.Implicits.global

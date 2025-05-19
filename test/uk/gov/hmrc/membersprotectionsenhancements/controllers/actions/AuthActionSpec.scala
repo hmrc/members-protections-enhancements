@@ -38,9 +38,9 @@ class AuthActionSpec extends SpecBase {
 
   "Auth Action" - {
 
-    "when the user hasn't logged in" - {
+    "must throw unauthorised error" - {
 
-      "must redirect the user to log in " in {
+      "when the user has no bearer token" in {
 
         val application = applicationBuilder().build()
 
@@ -56,15 +56,12 @@ class AuthActionSpec extends SpecBase {
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 
-          status(result) mustBe BAD_REQUEST
+          status(result) mustBe UNAUTHORIZED
 
         }
       }
-    }
 
-    "the user's session has expired" - {
-
-      "must redirect the user to log in " in {
+      "the user's bearer token has expired" in {
 
         val application = applicationBuilder().build()
 
@@ -80,16 +77,12 @@ class AuthActionSpec extends SpecBase {
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 
-          status(result) mustBe BAD_REQUEST
+          status(result) mustBe UNAUTHORIZED
 
         }
       }
-    }
 
-    "the user doesn't have sufficient enrolments" - {
-
-      "must redirect the user to the sign in page" in {
-
+      "the user doesn't have sufficient enrolments" in {
         val application = applicationBuilder().build()
 
         running(application) {
@@ -104,38 +97,11 @@ class AuthActionSpec extends SpecBase {
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 
-          status(result) mustBe BAD_REQUEST
+          status(result) mustBe UNAUTHORIZED
         }
       }
-    }
 
-    "the user doesn't have sufficient confidence level" - {
-
-      "must redirect the user to the sign in page" in {
-
-        val application = applicationBuilder().build()
-
-        running(application) {
-          val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
-
-          val authAction = new AuthenticatedIdentifierAction(
-            new FakeFailingAuthConnector(new InsufficientConfidenceLevel),
-            appConfig,
-            bodyParsers
-          )
-          val controller = new Harness(authAction)
-          val result = controller.onPageLoad()(FakeRequest())
-
-          status(result) mustBe BAD_REQUEST
-        }
-      }
-    }
-
-    "the user used an unaccepted auth provider" - {
-
-      "must redirect the user to the sign in page" in {
-
+      "the user used an unaccepted auth provider" in {
         val application = applicationBuilder().build()
 
         running(application) {
@@ -150,14 +116,11 @@ class AuthActionSpec extends SpecBase {
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 
-          status(result) mustBe BAD_REQUEST
+          status(result) mustBe UNAUTHORIZED
         }
       }
-    }
 
-    "the user has an unsupported affinity group" - {
-
-      "must redirect the user to the sign in page" in {
+      "the user has an unsupported affinity group" in {
 
         val application = applicationBuilder().build()
 
@@ -173,14 +136,11 @@ class AuthActionSpec extends SpecBase {
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 
-          status(result) mustBe BAD_REQUEST
+          status(result) mustBe UNAUTHORIZED
         }
       }
-    }
 
-    "the user has an unsupported credential role" - {
-
-      "must redirect the user to the sign in page" in {
+      "the user has an unsupported credential role" in {
 
         val application = applicationBuilder().build()
 
@@ -197,7 +157,7 @@ class AuthActionSpec extends SpecBase {
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 
-          status(result) mustBe BAD_REQUEST
+          status(result) mustBe UNAUTHORIZED
         }
       }
     }

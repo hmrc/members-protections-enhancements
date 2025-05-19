@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
+package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
-import com.google.inject.AbstractModule
+import uk.gov.hmrc.membersprotectionsenhancements.utils.enums.Enums
+import play.api.libs.json.Format
 
-class Module extends AbstractModule {
+sealed trait UserType
 
-  override def configure(): Unit = {
-    bind(classOf[AppConfig]).asEagerSingleton()
-    bind(classOf[IdentifierAction]).to(classOf[AuthenticatedIdentifierAction]).asEagerSingleton()
-    bind(classOf[DataRetrievalAction]).to(classOf[DataRetrievalActionImpl]).asEagerSingleton()
-  }
+object UserType extends Enumeration {
 
+  case object PSA extends UserType
+  case object PSP extends UserType
+
+  implicit val formatApiVersion: Format[UserType] = Enums.format[UserType]
+  val parser: PartialFunction[String, UserType] = Enums.parser[UserType]
 }
