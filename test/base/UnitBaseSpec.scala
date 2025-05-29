@@ -37,7 +37,8 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
 import org.scalatest.matchers.must.Matchers
 import play.api.mvc.BodyParsers
 import play.api.inject.bind
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.libs.ws.WSClient
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers.running
@@ -49,7 +50,7 @@ import scala.reflect.ClassTag
 
 import java.net.URLEncoder
 
-trait SpecBase
+trait UnitBaseSpec
     extends AnyFreeSpec
     with Matchers
     with TryValues
@@ -58,7 +59,7 @@ trait SpecBase
     with IntegrationPatience
     with MockitoSugar
     with BeforeAndAfterEach
-    with GuiceOneAppPerSuite {
+    with GuiceOneServerPerSuite {
 
   val parsers: BodyParsers.Default = app.injector.instanceOf[BodyParsers.Default]
 
@@ -77,5 +78,7 @@ trait SpecBase
   protected def injected[A: ClassTag](implicit app: Application): A = app.injector.instanceOf[A]
 
   def urlEncode(input: String): String = URLEncoder.encode(input, "utf-8")
+
+  lazy val client: WSClient = app.injector.instanceOf[WSClient]
 
 }

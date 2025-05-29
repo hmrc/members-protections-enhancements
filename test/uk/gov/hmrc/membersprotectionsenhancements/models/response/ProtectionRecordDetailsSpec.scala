@@ -1,20 +1,38 @@
+/*
+ * Copyright 2025 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-import base.SpecBase
-import play.api.libs.json.{JsError, JsObject, JsSuccess, JsValue, Json}
+import base.UnitBaseSpec
+import play.api.libs.json._
 
-class ProtectionRecordDetailsSpec extends SpecBase {
-  val testModel: ProtectionRecordDetails = ProtectionRecordDetails(Seq(
-    ProtectionRecord(
-      protectionReference = Some("some-id"),
-      `type` = "some-type",
-      status = "some-status",
-      protectedAmount = Some(1),
-      lumpSumAmount = Some(1),
-      lumpSumPercentage = Some(1),
-      enhancementFactor = Some(0.5)
+class ProtectionRecordDetailsSpec extends UnitBaseSpec {
+  val testModel: ProtectionRecordDetails = ProtectionRecordDetails(
+    Seq(
+      ProtectionRecord(
+        protectionReference = Some("some-id"),
+        `type` = "some-type",
+        status = "some-status",
+        protectedAmount = Some(1),
+        lumpSumAmount = Some(1),
+        lumpSumPercentage = Some(1),
+        enhancementFactor = Some(0.5)
+      )
     )
-  ))
+  )
 
   val testJson: JsValue = Json.parse(
     """
@@ -33,8 +51,6 @@ class ProtectionRecordDetailsSpec extends SpecBase {
       |}
     """.stripMargin
   )
-
-
 
   "writes" -> {
     "should return the expected JSON" in {

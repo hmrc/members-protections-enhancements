@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
+package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validators
 
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
 import base.UnitBaseSpec
-import play.api.libs.json.{JsResultException, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import java.time.LocalDate
 
-class PensionSchemeMemberRequestSpec extends UnitBaseSpec {
+class MembersDetailsValidatorSpec extends UnitBaseSpec {
+
+  val validator = new MembersLookUpValidator()
 
   val json: JsValue = Json.parse("""
       |{
@@ -35,38 +41,37 @@ class PensionSchemeMemberRequestSpec extends UnitBaseSpec {
   val model: PensionSchemeMemberRequest =
     PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "QQ123456C", "PSA12345678A")
 
-  "PensionSchemeMemberRequest" - {
+  "MembersDetailsValidator" - {
     "return a valid model" in {
-      json.as[PensionSchemeMemberRequest] mustBe model
+      validator.validate(json) mustBe Right(model)
     }
 
-    "return a error for invalid data" in {
-      val invalidJson: JsValue = Json.parse("""
+    "return an error for invalid data" in {
+      val invalidJson: JsValue = Json.parse(
+        """
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
-          |    "nino": "QQ 12 34 56 C",
+          |    "nino": "QQ123456C",
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      intercept[JsResultException] {
-        invalidJson.as[PensionSchemeMemberRequest]
-      }
+      validator.validate(invalidJson) mustBe
+        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth"))))
     }
 
-    "return a error for invalid date format" in {
+    "return multiple errors" in {
       val invalidJson: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
           |    "dateOfBirth": "20-01-2012",
-          |    "nino": "QQ123456C",
+          |    "nino": "QQ1 234 56C",
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      intercept[JsResultException] {
-        invalidJson.as[PensionSchemeMemberRequest]
-      }
+      validator.validate(invalidJson) mustBe
+        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth", "Missing or invalid nino"))))
     }
   }
 }

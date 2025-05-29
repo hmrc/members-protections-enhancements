@@ -21,13 +21,13 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserType.
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{DataRequest, IdentifierRequest, UserDetails}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.AdministratorRequest
-import base.SpecBase
+import base.UnitBaseSpec
 import uk.gov.hmrc.auth.core.AffinityGroup
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class DataRetrievalActionSpec extends SpecBase with MockitoSugar {
+class DataRetrievalActionSpec extends UnitBaseSpec with MockitoSugar {
 
   class Harness extends DataRetrievalActionImpl {
     def callTransform[A](request: IdentifierRequest[A]): Future[DataRequest[A]] = transform(request)

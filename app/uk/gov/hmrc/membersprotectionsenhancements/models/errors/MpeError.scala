@@ -18,7 +18,7 @@ package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
 import play.api.libs.json.{Json, OWrites}
 
-sealed case class MpeError(code: String, message: String, paths: Option[Seq[String]] = None)
+sealed case class MpeError(code: String, message: String, reasons: Option[Seq[String]] = None)
 
 object MpeError {
   implicit val writes: OWrites[MpeError] = Json.writes[MpeError]
@@ -44,4 +44,10 @@ object InternalError
     extends MpeError(
       code = "INTERNAL_SERVER_ERROR",
       message = "An internal server error occurred"
+    )
+
+object NotFoundError
+    extends MpeError(
+      code = "NOT_FOUND",
+      message = "Matching not found"
     )
