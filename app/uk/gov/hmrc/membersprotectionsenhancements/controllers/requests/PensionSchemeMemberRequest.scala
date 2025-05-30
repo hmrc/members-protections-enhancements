@@ -34,11 +34,15 @@ object PensionSchemeMemberRequest {
   implicit val reads: Reads[PensionSchemeMemberRequest] =
     (JsPath \ "firstName")
       .read[String](name)
-      .orError("Missing or invalid firstName")
-      .and((__ \ "lastName").read[String](name).orError("Missing or invalid lastName"))
-      .and((__ \ "dateOfBirth").read[LocalDate](dateReads).orError("Missing or invalid dateOfBirth"))
-      .and((__ \ "nino").read[String](nino).orError("Missing or invalid nino"))
-      .and((__ \ "psaCheckRef").read[String](psaCheckRef).orError("Missing or invalid psaCheckRef"))(
+      .orError(JsPath \ "firstName", "Missing or invalid firstName")
+      .and((__ \ "lastName").read[String](name).orError(__ \ "lastName", "Missing or invalid lastName"))
+      .and(
+        (__ \ "dateOfBirth").read[LocalDate](dateReads).orError(__ \ "dateOfBirth", "Missing or invalid dateOfBirth")
+      )
+      .and((__ \ "nino").read[String](nino).orError(__ \ "nino", "Missing or invalid nino"))
+      .and(
+        (__ \ "psaCheckRef").read[String](psaCheckRef).orError(__ \ "psaCheckRef", "Missing or invalid psaCheckRef")
+      )(
         PensionSchemeMemberRequest.apply _
       )
 

@@ -34,12 +34,12 @@ object MpeReads {
   def nino(implicit reads: Reads[String]): Reads[String] =
     pattern(
       """[A-Za-z]{2}[0-9]{6}[A-Za-z]{1}""".r,
-      "error.email"
+      "error.nino"
     )
   def psaCheckRef(implicit reads: Reads[String]): Reads[String] =
     pattern(
       """[A-Za-z]{3}[0-9]{8}[A-Za-z]{1}""".r,
-      "error.email"
+      "error.psaCheckRef"
     )
 
   private val datePattern = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -48,7 +48,7 @@ object MpeReads {
     (json: JsValue) => Try(JsSuccess(LocalDate.parse(json.as[String], datePattern), JsPath)).getOrElse(JsError())
 
   implicit class ReadsWithError[T](reads: Reads[T]) {
-    def orError(msg: String): Reads[T] =
-      reads.orElse((json: JsValue) => JsError(__, msg))
+    def orError(jsPath: JsPath, msg: String): Reads[T] =
+      reads.orElse((json: JsValue) => JsError(jsPath, msg))
   }
 }

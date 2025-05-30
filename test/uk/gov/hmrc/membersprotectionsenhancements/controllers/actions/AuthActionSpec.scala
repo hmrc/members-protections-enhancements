@@ -24,13 +24,13 @@ import uk.gov.hmrc.auth.core.retrieve.Retrieval
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.auth.core.authorise.Predicate
-import base.SpecBase
+import base.UnitBaseSpec
 import uk.gov.hmrc.auth.core._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuthActionSpec extends SpecBase {
+class AuthActionUnitSpec extends UnitBaseSpec {
 
   class Harness(authAction: IdentifierAction) {
     def onPageLoad(): Action[AnyContent] = authAction(_ => Results.Ok)

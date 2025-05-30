@@ -25,7 +25,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
 import play.api.mvc.Results.Ok
 import play.api.test.Helpers._
 import org.mockito.Mockito.when
-import base.SpecBase
+import base.UnitBaseSpec
 import uk.gov.hmrc.auth.core._
 import play.api.Application
 import play.api.libs.json.Json
@@ -38,7 +38,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.Identifie
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthenticatedIdentifierActionSpec extends SpecBase with StubPlayBodyParsersFactory {
+class AuthenticatedIdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory {
 
   def authAction(appConfig: AppConfig) =
     new AuthenticatedIdentifierAction(mockAuthConnector, appConfig, bodyParsers)(ExecutionContext.global)

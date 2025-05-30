@@ -15,14 +15,20 @@
  */
 
 package uk.gov.hmrc.membersprotectionsenhancements.config
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.Configuration
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (config: ServicesConfig) {
+class AppConfig @Inject() (configuration: Configuration) {
 
-  val appName: String = config.getString("appName")
+  private def loadConfig(key: String): String = configuration.get[String](key)
 
-  lazy val stubBaseUrl: String = config.baseUrl("stub")
+  val appName: String = loadConfig("appName")
+
+  lazy val npsBase: String = configuration.get[Service]("microservice.services.nps")
+
+  // lazy val matchUrl: String = loadConfig("urls.match")
+
+  lazy val retrieveUrl: String = s"$npsBase/${loadConfig("urls.retrieve")}"
 }
