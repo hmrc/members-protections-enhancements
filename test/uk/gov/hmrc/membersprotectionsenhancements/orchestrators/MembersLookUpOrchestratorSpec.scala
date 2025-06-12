@@ -37,19 +37,21 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
   private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   val request: PensionSchemeMemberRequest =
-    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "QQ123456C", "PSA12345678A")
+    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "AA123456C", "PSA12345678A")
 
-  val resModel: ProtectionRecordDetails = ProtectionRecordDetails(Seq(
-    ProtectionRecord(
-      protectionReference = Some("some-id"),
-      `type` = "some-type",
-      status = "some-status",
-      protectedAmount = Some(1),
-      lumpSumAmount = Some(1),
-      lumpSumPercentage = Some(1),
-      enhancementFactor = Some(0.5)
+  val resModel: ProtectionRecordDetails = ProtectionRecordDetails(
+    Seq(
+      ProtectionRecord(
+        protectionReference = Some("some-id"),
+        `type` = "some-type",
+        status = "some-status",
+        protectedAmount = Some(1),
+        lumpSumAmount = Some(1),
+        lumpSumPercentage = Some(1),
+        enhancementFactor = Some(0.5)
+      )
     )
-  ))
+  )
 
   "MembersLookUpOrchestrator" - {
     "return a valid response model for a valid request" in {

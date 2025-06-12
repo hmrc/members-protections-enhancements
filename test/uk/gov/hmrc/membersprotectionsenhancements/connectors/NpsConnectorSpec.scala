@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class NpsConnectorSpec extends ItBaseSpec {
 
-  private val nino = "QQ123456C"
+  private val nino = "AA123456C"
   private val psaCheckRef = "PSA12345678A"
   private val retrieveUrl = s"/mpe-nps-stub/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
 
@@ -61,49 +61,48 @@ class NpsConnectorSpec extends ItBaseSpec {
           |}
         """.stripMargin
 
-      val resModel: ProtectionRecordDetails = ProtectionRecordDetails(Seq(
-        ProtectionRecord(
-          protectionReference = Some("some-id"),
-          `type` = "some-type",
-          status = "some-status",
-          protectedAmount = Some(1),
-          lumpSumAmount = Some(1),
-          lumpSumPercentage = Some(1),
-          enhancementFactor = Some(0.5)
+      val resModel: ProtectionRecordDetails = ProtectionRecordDetails(
+        Seq(
+          ProtectionRecord(
+            protectionReference = Some("some-id"),
+            `type` = "some-type",
+            status = "some-status",
+            protectedAmount = Some(1),
+            lumpSumAmount = Some(1),
+            lumpSumPercentage = Some(1),
+            enhancementFactor = Some(0.5)
+          )
         )
-      ))
-
-      stubGet(retrieveUrl,
-        ok(response)
       )
 
-      whenReady(connector.retrieve(nino, psaCheckRef)) {
-        (result: Either[MpeError, ProtectionRecordDetails]) =>
-          WireMock.verify(
-            getRequestedFor(
-              urlEqualTo(retrieveUrl)
-            )
+      stubGet(retrieveUrl, ok(response))
+
+      whenReady(connector.retrieve(nino, psaCheckRef)) { (result: Either[MpeError, ProtectionRecordDetails]) =>
+        WireMock.verify(
+          getRequestedFor(
+            urlEqualTo(retrieveUrl)
           )
-          result mustBe Right(resModel)
+        )
+        result mustBe Right(resModel)
       }
     }
     "return MpeError wrapped BAD_REQUEST for BAD_REQUEST response" in {
 
-      val errorResponse = MpeError("BAD_REQUEST",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 400 (Bad Request). Response body ''", None)
-
-      stubGet(retrieveUrl,
-        badRequest()
+      val errorResponse = MpeError(
+        "BAD_REQUEST",
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 400 (Bad Request). Response body ''",
+        None
       )
 
-      whenReady(connector.retrieve(nino, psaCheckRef)) {
-        (result: Either[MpeError, ProtectionRecordDetails]) =>
-          WireMock.verify(
-            getRequestedFor(
-              urlEqualTo(retrieveUrl)
-            )
+      stubGet(retrieveUrl, badRequest())
+
+      whenReady(connector.retrieve(nino, psaCheckRef)) { (result: Either[MpeError, ProtectionRecordDetails]) =>
+        WireMock.verify(
+          getRequestedFor(
+            urlEqualTo(retrieveUrl)
           )
-          result mustBe Left(errorResponse)
+        )
+        result mustBe Left(errorResponse)
       }
     }
 
@@ -111,20 +110,17 @@ class NpsConnectorSpec extends ItBaseSpec {
 
       val errorResponse = MpeError(
         "NOT_FOUND",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 404 (Not Found). Response body: ''"
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 404 (Not Found). Response body: ''"
       )
-      stubGet(retrieveUrl,
-        notFound()
-      )
+      stubGet(retrieveUrl, notFound())
 
-      whenReady(connector.retrieve(nino, psaCheckRef)) {
-        (result: Either[MpeError, ProtectionRecordDetails]) =>
-          WireMock.verify(
-            getRequestedFor(
-              urlEqualTo(retrieveUrl)
-            )
+      whenReady(connector.retrieve(nino, psaCheckRef)) { (result: Either[MpeError, ProtectionRecordDetails]) =>
+        WireMock.verify(
+          getRequestedFor(
+            urlEqualTo(retrieveUrl)
           )
-          result mustBe Left(errorResponse)
+        )
+        result mustBe Left(errorResponse)
       }
     }
 
@@ -132,20 +128,17 @@ class NpsConnectorSpec extends ItBaseSpec {
 
       val errorResponse = MpeError(
         "FORBIDDEN",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 403. Response body: ''"
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 403. Response body: ''"
       )
-      stubGet(retrieveUrl,
-        forbidden()
-      )
+      stubGet(retrieveUrl, forbidden())
 
-      whenReady(connector.retrieve(nino, psaCheckRef)) {
-        (result: Either[MpeError, ProtectionRecordDetails]) =>
-          WireMock.verify(
-            getRequestedFor(
-              urlEqualTo(retrieveUrl)
-            )
+      whenReady(connector.retrieve(nino, psaCheckRef)) { (result: Either[MpeError, ProtectionRecordDetails]) =>
+        WireMock.verify(
+          getRequestedFor(
+            urlEqualTo(retrieveUrl)
           )
-          result mustBe Left(errorResponse)
+        )
+        result mustBe Left(errorResponse)
       }
     }
 
@@ -153,20 +146,17 @@ class NpsConnectorSpec extends ItBaseSpec {
 
       val errorResponse = MpeError(
         "INTERNAL_ERROR",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 500. Response body: ''"
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 500. Response body: ''"
       )
-      stubGet(retrieveUrl,
-        serverError()
-      )
+      stubGet(retrieveUrl, serverError())
 
-      whenReady(connector.retrieve(nino, psaCheckRef)) {
-        (result: Either[MpeError, ProtectionRecordDetails]) =>
-          WireMock.verify(
-            getRequestedFor(
-              urlEqualTo(retrieveUrl)
-            )
+      whenReady(connector.retrieve(nino, psaCheckRef)) { (result: Either[MpeError, ProtectionRecordDetails]) =>
+        WireMock.verify(
+          getRequestedFor(
+            urlEqualTo(retrieveUrl)
           )
-          result mustBe Left(errorResponse)
+        )
+        result mustBe Left(errorResponse)
       }
     }
   }

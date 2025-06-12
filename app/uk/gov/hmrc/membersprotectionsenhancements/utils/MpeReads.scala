@@ -33,12 +33,13 @@ object MpeReads {
     )
   def nino(implicit reads: Reads[String]): Reads[String] =
     pattern(
-      """[A-Za-z]{2}[0-9]{6}[A-Za-z]{1}""".r,
+      ("^((([ACEHJLMOPRSWXY][A-CEGHJ-NPR-TW-Z]|B[A-CEHJ-NPR-TW-Z]|G[ACEGHJ-NPR-TW-Z]|[KT]" +
+        "[A-CEGHJ-MPR-TW-Z]|N[A-CEGHJL-NPR-SW-Z]|Z[A-CEGHJ-NPR-TW-Y])[0-9]{6})[A-D]?|([0-9]{2}[A-Z]{1}[0-9]{5}))$").r,
       "error.nino"
     )
   def psaCheckRef(implicit reads: Reads[String]): Reads[String] =
     pattern(
-      """[A-Za-z]{3}[0-9]{8}[A-Za-z]{1}""".r,
+      """^PSA[0-9]{8}[A-Z]$""".r,
       "error.psaCheckRef"
     )
 

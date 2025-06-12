@@ -36,7 +36,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.ClassTag
 
 abstract class ItBaseSpec
-  extends AnyWordSpec
+    extends AnyWordSpec
     with WireMockSupport
     with HttpClientV2Support
     with DiffShouldMatcher
@@ -51,7 +51,7 @@ abstract class ItBaseSpec
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = scaled(Span(500, Millis)), interval = scaled(Span(50, Millis)))
 
-  implicit val queryParamsToJava: Map[String, String] =>  java.util.Map[String, StringValuePattern] = _.map {
+  implicit val queryParamsToJava: Map[String, String] => java.util.Map[String, StringValuePattern] = _.map {
     case (k, v) =>
       k -> equalTo(v)
   }.asJava

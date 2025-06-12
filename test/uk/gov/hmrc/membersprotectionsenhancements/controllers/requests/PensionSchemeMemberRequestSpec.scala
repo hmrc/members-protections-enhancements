@@ -28,12 +28,12 @@ class PensionSchemeMemberRequestSpec extends UnitBaseSpec {
       |    "firstName": "Naren",
       |    "lastName": "Vijay",
       |    "dateOfBirth": "2024-12-31",
-      |    "nino": "QQ123456C",
+      |    "nino": "AA123456C",
       |    "psaCheckRef":"PSA12345678A"
       |}""".stripMargin)
 
   val model: PensionSchemeMemberRequest =
-    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "QQ123456C", "PSA12345678A")
+    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "AA123456C", "PSA12345678A")
 
   "PensionSchemeMemberRequest" - {
     "return a valid model" in {

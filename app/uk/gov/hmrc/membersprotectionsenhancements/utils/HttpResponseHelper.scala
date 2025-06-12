@@ -22,7 +22,8 @@ import uk.gov.hmrc.http._
 
 trait HttpResponseHelper extends HttpErrorFunctions with Logging {
 
-  implicit val httpResponseReads: HttpReads[HttpResponse] = (method: String, url: String, response: HttpResponse) => response
+  implicit val httpResponseReads: HttpReads[HttpResponse] = (method: String, url: String, response: HttpResponse) =>
+    response
 
   def handleErrorResponse(httpMethod: String, url: String)(response: HttpResponse): MpeError =
     response.status match {
@@ -49,4 +50,4 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
 }
 
 class UnrecognisedHttpResponseException(method: String, url: String, response: HttpResponse)
-  extends Exception(s"$method to $url failed with status ${response.status}. Response body: '${response.body}'")
+    extends Exception(s"$method to $url failed with status ${response.status}. Response body: '${response.body}'")
