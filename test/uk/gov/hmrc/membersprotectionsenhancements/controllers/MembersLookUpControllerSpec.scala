@@ -45,7 +45,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
   private val mockAppConfig: AppConfig = mock[AppConfig]
 
-  private val nino = "QQ123456C"
+  private val nino = "AA123456C"
   private val psaCheckRef = "PSA12345678A"
   private val retrieveUrl = s"/mpe-nps-stub/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
 
@@ -69,7 +69,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
                                    |    "firstName": "Naren",
                                    |    "lastName": "Vijay",
                                    |    "dateOfBirth": "2024-12-31",
-                                   |    "nino": "QQ123456C",
+                                   |    "nino": "AA123456C",
                                    |    "psaCheckRef":"PSA12345678A"
                                    |}""".stripMargin)
 
@@ -105,7 +105,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
       val response = MpeError(
         "NOT_FOUND",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 404 (Not Found). Response body: ''"
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 404 (Not Found). Response body: ''"
       )
 
       stubGet(retrieveUrl, notFound())
@@ -123,7 +123,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
           |    "firstName": "Naren",
           |    "lastName": "lastname",
           |    "dateOfBirth": "2024-12-31",
-          |    "nino": "QQ123456C"
+          |    "nino": "AA123456C"
           |}""".stripMargin)
 
       val response = MpeError("BAD_REQUEST", "Invalid request data", Some(Seq("Missing or invalid psaCheckRef")))
@@ -138,7 +138,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
       val response = MpeError(
         "FORBIDDEN",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 403. Response body: ''"
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 403. Response body: ''"
       )
 
       stubGet(retrieveUrl, forbidden())
@@ -153,7 +153,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
       val response = MpeError(
         "INTERNAL_ERROR",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/QQ123456C/admin-reference/PSA12345678A/lookup' returned 500. Response body: ''"
+        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 500. Response body: ''"
       )
 
       stubGet(retrieveUrl, serverError())

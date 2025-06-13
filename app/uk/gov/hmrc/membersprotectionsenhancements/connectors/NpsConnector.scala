@@ -32,7 +32,7 @@ import javax.inject.{Inject, Singleton}
 import java.net.URI
 
 @Singleton
-class NpsConnector @Inject()(val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
+class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
 
 //  def search()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
 //
@@ -46,13 +46,15 @@ class NpsConnector @Inject()(val config: AppConfig, val http: HttpClientV2) exte
 //  }
 
   def retrieve(
-                nino: String, psaCheckRef: String
-              )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[MpeError, ProtectionRecordDetails]] = {
+    nino: String,
+    psaCheckRef: String
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[MpeError, ProtectionRecordDetails]] = {
 
     val retrieveUrl = s"${config.retrieveUrl}/$nino/admin-reference/$psaCheckRef/lookup"
     http
       .get(URI.create(retrieveUrl).toURL)
-      .execute[HttpResponse].map { response =>
+      .execute[HttpResponse]
+      .map { response =>
         response.status match {
           case OK =>
             response.json.validate[ProtectionRecordDetails] match {

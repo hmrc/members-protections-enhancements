@@ -34,12 +34,12 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       |    "firstName": "Naren",
       |    "lastName": "Vijay",
       |    "dateOfBirth": "2024-12-31",
-      |    "nino": "QQ123456C",
+      |    "nino": "AA123456C",
       |    "psaCheckRef":"PSA12345678A"
       |}""".stripMargin)
 
   val model: PensionSchemeMemberRequest =
-    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "QQ123456C", "PSA12345678A")
+    PensionSchemeMemberRequest("Naren", "Vijay", LocalDate.of(2024, 12, 31), "AA123456C", "PSA12345678A")
 
   "MembersDetailsValidator" - {
     "return a valid model" in {
@@ -47,12 +47,11 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
     }
 
     "return an error for invalid data" in {
-      val invalidJson: JsValue = Json.parse(
-        """
+      val invalidJson: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
-          |    "nino": "QQ123456C",
+          |    "nino": "AA123456C",
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
@@ -71,7 +70,13 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
           |}""".stripMargin)
 
       validator.validate(invalidJson) mustBe
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth", "Missing or invalid nino"))))
+        Left(
+          MpeError(
+            "BAD_REQUEST",
+            "Invalid request data",
+            Some(List("Missing or invalid dateOfBirth", "Missing or invalid nino"))
+          )
+        )
     }
   }
 }

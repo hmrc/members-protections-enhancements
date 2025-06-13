@@ -28,9 +28,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject()(nps: NpsConnector)(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpOrchestrator @Inject() (nps: NpsConnector)(implicit val ec: ExecutionContext) extends Logging {
 
-  def checkAndRetrieve(request: PensionSchemeMemberRequest)(implicit hc: HeaderCarrier): Future[Either[MpeError, ProtectionRecordDetails]] = {
+  def checkAndRetrieve(request: PensionSchemeMemberRequest)(implicit
+    hc: HeaderCarrier
+  ): Future[Either[MpeError, ProtectionRecordDetails]] =
     nps.retrieve(request.nino, request.psaCheckRef)
-  }
 }

@@ -26,15 +26,14 @@ import scala.concurrent.ExecutionContext
 
 import javax.inject.{Inject, Singleton}
 
-
 @Singleton
-class MembersLookUpValidator @Inject()()(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpValidator @Inject() ()(implicit val ec: ExecutionContext) extends Logging {
 
   def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] =
     requestBody.validate[PensionSchemeMemberRequest] match {
       case JsSuccess(value, _) => Right(value)
       case JsError(errors) =>
-        val r = errors map {
+        val r = errors.map {
           case (_: JsPath, Seq(JsonValidationError(Seq(error: String)))) => error
           case _ => "Unknown error"
         }
