@@ -31,16 +31,24 @@ object MpeReads {
       """^[a-zA-Z\-' ]{1,35}+$""".r,
       "error.name"
     )
+
   def nino(implicit reads: Reads[String]): Reads[String] =
     pattern(
       ("^((([ACEHJLMOPRSWXY][A-CEGHJ-NPR-TW-Z]|B[A-CEHJ-NPR-TW-Z]|G[ACEGHJ-NPR-TW-Z]|[KT]" +
         "[A-CEGHJ-MPR-TW-Z]|N[A-CEGHJL-NPR-SW-Z]|Z[A-CEGHJ-NPR-TW-Y])[0-9]{6})[A-D]?|([0-9]{2}[A-Z]{1}[0-9]{5}))$").r,
       "error.nino"
     )
+
   def psaCheckRef(implicit reads: Reads[String]): Reads[String] =
     pattern(
       """^PSA[0-9]{8}[A-Z]$""".r,
       "error.psaCheckRef"
+    )
+
+  def matchResult(implicit reads: Reads[String]): Reads[String] =
+    pattern(
+      "^(MATCH|NO MATCH)$".r,
+      "error.matchResult"
     )
 
   private val datePattern = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -50,6 +58,6 @@ object MpeReads {
 
   implicit class ReadsWithError[T](reads: Reads[T]) {
     def orError(jsPath: JsPath, msg: String): Reads[T] =
-      reads.orElse((json: JsValue) => JsError(jsPath, msg))
+      reads.orElse((_: JsValue) => JsError(jsPath, msg))
   }
 }
