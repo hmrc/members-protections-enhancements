@@ -16,79 +16,120 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalacheck.Gen
-import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
+import base.UnitBaseSpec
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InternalError, MpeError}
 import play.api.http.Status._
+import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.http._
 
-// scalastyle:off magic.number
+class HttpResponseHelperSpec extends UnitBaseSpec {
 
-class HttpResponseHelperSpec extends AnyFlatSpec with Matchers with ScalaCheckDrivenPropertyChecks {
+  private object TestObject extends HttpResponseHelper {
+    override val classLoggingContext: String = ""
+  }
 
-  import HttpResponseHelperSpec._
+  protected case class DummyClass(field: String)
 
-  "handleErrorResponse" should "transform Bad Request into BadRequestException" in {
-    val response = responseFor(BAD_REQUEST)
-    fixture()(response) shouldBe MpeError(
-      "BAD_REQUEST",
-      "test-method of 'test-url' returned 400 (Bad Request). Response body 'Message for 400'",
-      None
+  protected object DummyClass {
+    implicit val reads: Reads[DummyClass] = Json.reads[DummyClass]
+  }
+
+  private val dummyUrl: String = "some-url"
+
+  "handleErrorResponse" -> {
+    def handleErrorScenario(status: Int,
+                            method: String,
+                            expectedErrorCode: String): Unit = {
+      s"[handleErrorResponse] should handle appropriately for method: $method, and status: $status" in {
+        val dummyResponse = HttpResponse(status, "{}")
+        lazy val testResult: MpeError = TestObject.handleErrorResponse(method, dummyUrl, dummyResponse)
+        testResult.code mustBe expectedErrorCode
+      }
+    }
+
+    val testScenarios: Seq[(Int, String, String)] = Seq(
+      (BAD_REQUEST, "GET", "BAD_REQUEST"),
+      (FORBIDDEN, "GET", "FORBIDDEN"),
+      (NOT_FOUND, "GET", "NOT_FOUND"),
+      (NOT_FOUND, "POST", "UNEXPECTED_STATUS_ERROR"),
+      (UNPROCESSABLE_ENTITY, "GET", "UNPROCESSABLE_ENTITY"),
+      (UNPROCESSABLE_ENTITY, "PUT", "UNEXPECTED_STATUS_ERROR"),
+      (INTERNAL_SERVER_ERROR, "GET", "INTERNAL_ERROR"),
+      (SERVICE_UNAVAILABLE, "GET", "SERVICE_UNAVAILABLE"),
+      (IM_A_TEAPOT, "GET", "UNEXPECTED_STATUS_ERROR")
+    )
+
+    testScenarios.foreach(
+      scenario => handleErrorScenario(scenario._1, scenario._2, scenario._3)
     )
   }
 
-  it should "transform Not Found into NotFoundException" in {
-    val response = responseFor(NOT_FOUND)
-    fixture()(response) shouldBe MpeError(
-      "NOT_FOUND",
-      "test-method of 'test-url' returned 404 (Not Found). Response body: 'Message for 404'",
-      None
-    )
-  }
+  "jsonValidation" -> {
+    "[jsonValidation] when provided with non-valid JSON should return an error" in {
+      TestObject.jsonValidation[DummyClass]("") mustBe Left(InternalError)
+      TestObject.jsonValidation[DummyClass]("""{"field"}""") mustBe Left(InternalError)
+    }
 
-  it should "transform any other 4xx into Upstream4xxResponse" in {
-    val userErrors = for (n <- Gen.choose(400, 499).suchThat(n => n != 400 && n != 404)) yield n
-
-    forAll(userErrors) { userError =>
-      val ex = fixture()(responseFor(userError))
-      ex shouldBe MpeError(
-        "FORBIDDEN",
-        s"test-method of 'test-url' returned $userError. Response body: 'Message for $userError'",
-        None
+    "[jsonValidation] when provided with valid JSON which breaks validation rules should return an error" in {
+      lazy val res: Either[MpeError, DummyClass] = TestObject.jsonValidation[DummyClass](
+        """
+          |{
+          | "field": 2
+          |}
+        """.stripMargin
       )
+
+      res mustBe a [Left[_, _]]
+      res mustBe Left(InternalError)
     }
-  }
 
-  it should "transform any 5xx into Upstream5xxResponse" in {
-    val serverErrors = for (n <- Gen.choose(500, 599)) yield n
-
-    forAll(serverErrors) { serverError =>
-      val ex = fixture()(responseFor(serverError))
-      ex shouldBe MpeError(
-        "INTERNAL_ERROR",
-        s"test-method of 'test-url' returned $serverError. Response body: 'Message for $serverError'",
-        None
+    "[jsonValidation] when provided with valid JSON should return expected data model" in {
+      val res: Either[MpeError, DummyClass] = TestObject.jsonValidation[DummyClass](
+        """
+          |{
+          | "field": "value"
+          |}
+        """.stripMargin
       )
+
+      res mustBe a[Right[_, _]]
+      res.getOrElse(DummyClass("N/A")) mustBe DummyClass("value")
     }
   }
 
-  it should "transform any other status into an UnrecognisedHttpResponseException" in {
-    val statuses = for (n <- Gen.choose(0, 1000).suchThat(n => n < 400 || n >= 600)) yield n
+  "httpReads" -> {
+    "[httpReads] should return an error for an expected error status" in {
+      val result: Either[MpeError, DummyClass] = TestObject.httpReads[DummyClass].read(
+        method = "GET",
+        url = dummyUrl,
+        response = HttpResponse(BAD_REQUEST, "")
+      )
 
-    forAll(statuses) { status =>
-      an[UnrecognisedHttpResponseException] should be thrownBy fixture()(responseFor(status))
+      result mustBe a[Left[_, _]]
+      result.swap.getOrElse(InternalError).code mustBe "BAD_REQUEST"
+    }
+
+    "[httpReads] should handle appropriately for an unexpected status code" in {
+      val result: Either[MpeError, DummyClass] = TestObject.httpReads[DummyClass].read(
+        method = "GET",
+        url = dummyUrl,
+        response = HttpResponse(IM_A_TEAPOT, "")
+      )
+
+      result mustBe a[Left[_, _]]
+      result.swap.getOrElse(InternalError).code mustBe "UNEXPECTED_STATUS_ERROR"
+    }
+
+    "[httpReads] should handle appropriately for a success" in {
+      val result: Either[MpeError, DummyClass] = TestObject.httpReads[DummyClass].read(
+        method = "GET",
+        url = dummyUrl,
+        response = HttpResponse(OK, """{"field": "value"}""")
+      )
+
+      result mustBe a[Right[_, _]]
+      result.getOrElse(DummyClass("N/A")).field mustBe "value"
     }
   }
-
-}
-
-object HttpResponseHelperSpec {
-
-  def fixture(): HttpResponse => MpeError =
-    new HttpResponseHelper {}.handleErrorResponse("test-method", "test-url")
-
-  def responseFor(status: Int): HttpResponse = HttpResponse(status, s"Message for $status")
 
 }
