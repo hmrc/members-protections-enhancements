@@ -46,8 +46,8 @@ object InternalError
       message = "An internal server error occurred"
     )
 
-object NotFoundError
-    extends MpeError(
-      code = "NOT_FOUND",
-      message = "Matching not found"
-    )
+object UnexpectedStatusError
+  extends MpeError(
+    code = "UNEXPECTED_STATUS_ERROR",
+    message = "An unexpected status code was returned from downstream"
+  )
