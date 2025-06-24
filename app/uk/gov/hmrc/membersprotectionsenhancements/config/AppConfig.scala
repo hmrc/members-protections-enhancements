@@ -26,9 +26,12 @@ class AppConfig @Inject() (configuration: Configuration) {
 
   val appName: String = loadConfig("appName")
 
-  lazy val npsBase: String = configuration.get[Service]("microservice.services.nps")
+  private lazy val npsBase: String = configuration.get[Service]("microservice.services.nps")
 
-  // lazy val matchUrl: String = loadConfig("urls.match")
+  private lazy val npsContext: String = loadConfig("urls.npsContext")
+  lazy val matchUrl: String = npsBase + npsContext + s"/${loadConfig("urls.match")}"
+  lazy val retrieveUrl: String = npsBase + npsContext + s"/${loadConfig("urls.retrieve")}"
 
-  lazy val retrieveUrl: String = s"$npsBase/${loadConfig("urls.retrieve")}"
+  lazy val matchPersonGovUkOriginatorId: String = loadConfig("govUkOriginatorId.matchPerson")
+  lazy val retrieveMpeGovUkOriginatorId: String = loadConfig("govUkOriginatorId.retrieveMpe")
 }

@@ -16,19 +16,17 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import uk.gov.hmrc.membersprotectionsenhancements.utils.MpeReads._
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
 
 import java.time.LocalDate
 
-case class PensionSchemeMemberRequest(
-  firstName: String,
-  lastName: String,
-  dateOfBirth: LocalDate,
-  nino: String,
-  psaCheckRef: String
-)
+case class PensionSchemeMemberRequest(firstName: String,
+                                      lastName: String,
+                                      dateOfBirth: LocalDate,
+                                      nino: String,
+                                      psaCheckRef: String)
 
 object PensionSchemeMemberRequest {
   implicit val reads: Reads[PensionSchemeMemberRequest] =
@@ -36,15 +34,16 @@ object PensionSchemeMemberRequest {
       .read[String](name)
       .orError(JsPath \ "firstName", "Missing or invalid firstName")
       .and((__ \ "lastName").read[String](name).orError(__ \ "lastName", "Missing or invalid lastName"))
-      .and(
-        (__ \ "dateOfBirth").read[LocalDate](dateReads).orError(__ \ "dateOfBirth", "Missing or invalid dateOfBirth")
-      )
+      .and((__ \ "dateOfBirth").read[LocalDate](dateReads).orError(__ \ "dateOfBirth", "Missing or invalid dateOfBirth"))
       .and((__ \ "nino").read[String](nino).orError(__ \ "nino", "Missing or invalid nino"))
-      .and(
-        (__ \ "psaCheckRef").read[String](psaCheckRef).orError(__ \ "psaCheckRef", "Missing or invalid psaCheckRef")
-      )(
+      .and((__ \ "psaCheckRef").read[String](psaCheckRef).orError(__ \ "psaCheckRef", "Missing or invalid psaCheckRef"))(
         PensionSchemeMemberRequest.apply _
       )
 
-  implicit val writes: OWrites[PensionSchemeMemberRequest] = Json.writes[PensionSchemeMemberRequest]
+  val matchPersonWrites: OWrites[PensionSchemeMemberRequest] = (o: PensionSchemeMemberRequest) => Json.obj(
+    "identifier" -> o.nino,
+    "firstForename" -> o.firstName,
+    "surname" -> o.lastName,
+    "dateOfBirth" -> o.dateOfBirth
+  )
 }

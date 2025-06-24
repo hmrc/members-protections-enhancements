@@ -22,24 +22,252 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
 import base.ItBaseSpec
 import play.api.Application
+import play.api.http.Status.IM_A_TEAPOT
+import play.api.libs.json.JsObject
+import play.api.test.DefaultAwaitTimeout
+import play.api.test.Helpers.await
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{ProtectionRecord, ProtectionRecordDetails}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ProtectionRecord, ProtectionRecordDetails}
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class NpsConnectorSpec extends ItBaseSpec {
+class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
-  private val nino = "AA123456C"
-  private val psaCheckRef = "PSA12345678A"
-  private val retrieveUrl = s"/mpe-nps-stub/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
+  trait Test {
+    val application: Application = new GuiceApplicationBuilder()
+      .configure(
+        "microservice.services.nps.port" -> wireMockPort,
+        "urls.npsContext" -> ""
+      )
+      .build()
 
-  private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    val connector: NpsConnector = application.injector.instanceOf[NpsConnector]
 
-  val application: Application = new GuiceApplicationBuilder()
-    .configure("microservice.services.nps.port" -> wireMockPort)
-    .build()
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+  }
 
-  val connector: NpsConnector = application.injector.instanceOf[NpsConnector]
+  "NpsConnector" -> {
+    val nino: String = "AA123456C"
+    val psaCheckRef: String = "PSA12345678A"
+
+    "matchPerson" -> {
+      val npsUrl = "/paye/individual/match"
+
+      val request: PensionSchemeMemberRequest = PensionSchemeMemberRequest(
+        firstName = "Paul",
+        lastName = "Smith",
+        dateOfBirth = LocalDate.of(2024, 12, 31),
+        nino = "AA123456C",
+        psaCheckRef = "PSA12345678A"
+      )
+
+      "[matchPerson] should return the expected result when NPS returns a recognised error code" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = badRequest()
+        )
+
+        val result: Either[MpeError, MatchPersonResponse] = await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "BAD_REQUEST"
+      }
+
+      "[matchPerson] should return the expected result when NPS returns a unrecognised error code" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = aResponse().withStatus(IM_A_TEAPOT)
+        )
+
+        val result: Either[MpeError, MatchPersonResponse] = await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "UNEXPECTED_STATUS_ERROR"
+      }
+
+      "[matchPerson] should return the expected result when NPS returns an unparsable OK response" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = okJson(JsObject.empty.toString())
+        )
+
+        val result: Either[MpeError, MatchPersonResponse] = await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
+      }
+
+      "[matchPerson] should return the expected result when NPS returns an invalid OK response" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = okJson(
+            """
+              |{
+              | "matchResult": "beep"
+              |}
+            """.stripMargin
+          )
+        )
+
+        val result: Either[MpeError, MatchPersonResponse] = await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
+      }
+
+      "[matchPerson] should return the expected result when NPS returns a valid OK response" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = okJson(
+            """
+              |{
+              | "matchResult": "MATCH"
+              |}
+            """.stripMargin
+          )
+        )
+
+        val result: Either[MpeError, MatchPersonResponse] = await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Right[_, _]]
+        result.getOrElse(MatchPersonResponse("N/A")).matchResult mustBe "MATCH"
+      }
+    }
+
+    "retrieveMpe" -> {
+      val npsUrl = s"/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
+
+      "[retrieveMpe] should return the expected result when NPS returns a recognised error code" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = badRequest()
+        )
+
+        val result: Either[MpeError, ProtectionRecordDetails] = await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "BAD_REQUEST"
+      }
+
+      "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = aResponse().withStatus(IM_A_TEAPOT)
+        )
+
+        val result: Either[MpeError, ProtectionRecordDetails] = await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "UNEXPECTED_STATUS_ERROR"
+      }
+
+      "[retrieveMpe] should return the expected result when NPS returns an unparsable OK response" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = okJson("")
+        )
+
+        val result: Either[MpeError, ProtectionRecordDetails] = await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
+      }
+
+      "[retrieveMpe] should return the expected result when NPS returns an invalid OK response" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = okJson(
+            """
+              |{
+              | "protectionRecords": [
+              |   {
+              |     "protectionReference": "some-id",
+              |     "type": 2,
+              |     "status": "some-status",
+              |     "protectedAmount": 1,
+              |     "lumpSumAmount": 1,
+              |     "lumpSumPercentage": 1,
+              |     "enhancementFactor": 0.5
+              |   }
+              | ]
+              |}
+            """.stripMargin
+          )
+        )
+
+        val result: Either[MpeError, ProtectionRecordDetails] = await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Left[_, _]]
+        result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
+      }
+
+      "[retrieveMpe] should return the expected result when NPS returns a valid OK response" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = okJson(
+            """
+              |{
+              | "protectionRecords": [
+              |   {
+              |     "protectionReference": "some-id",
+              |     "type": "some-type",
+              |     "status": "some-status",
+              |     "protectedAmount": 1,
+              |     "lumpSumAmount": 1,
+              |     "lumpSumPercentage": 1,
+              |     "enhancementFactor": 0.5
+              |   }
+              | ]
+              |}
+            """.stripMargin
+          )
+        )
+
+        val result: Either[MpeError, ProtectionRecordDetails] = await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a [Right[_, _]]
+        result.getOrElse(ProtectionRecordDetails(Nil)).protectionRecords.head mustBe ProtectionRecord(
+          protectionReference = Some("some-id"),
+          `type` = "some-type",
+          status = "some-status",
+          protectedAmount = Some(1),
+          lumpSumAmount = Some(1),
+          lumpSumPercentage = Some(1),
+          enhancementFactor = Some(0.5)
+        )
+      }
+    }
+  }
+
+
+/*
 
   "retrieve" should {
     "return valid response with status 200 for a valid submission" in {
@@ -159,5 +387,5 @@ class NpsConnectorSpec extends ItBaseSpec {
         result mustBe Left(errorResponse)
       }
     }
-  }
+  }*/
 }
