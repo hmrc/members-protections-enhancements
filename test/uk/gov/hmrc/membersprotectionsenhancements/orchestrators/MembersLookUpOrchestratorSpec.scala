@@ -17,19 +17,20 @@
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
+import cats.data.EitherT
 import uk.gov.hmrc.http.HeaderCarrier
+import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+import org.mockito.ArgumentMatchers
 import uk.gov.hmrc.membersprotectionsenhancements.models.response._
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import org.mockito.Mockito.when
 import base.UnitBaseSpec
-import cats.data.EitherT
-import org.mockito.ArgumentMatchers
-import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, NpsConnector}
 
 import scala.concurrent.{Future, TimeoutException}
 import scala.concurrent.ExecutionContext.Implicits.global
+
 import java.time.LocalDate
 
 class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
@@ -44,7 +45,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       firstName = "Paul",
       lastName = "Smith",
       dateOfBirth = LocalDate.of(2024, 12, 31),
-      nino = "AA123456C",
+      identifier = "AA123456C",
       psaCheckRef = "PSA12345678A"
     )
 
@@ -58,7 +59,9 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       enhancementFactor = Some(0.5)
     )
 
-    def matchPersonMock(res: Future[Either[MpeError, MatchPersonResponse]]): OngoingStubbing[ConnectorResult[MatchPersonResponse]] =
+    def matchPersonMock(
+      res: Future[Either[MpeError, MatchPersonResponse]]
+    ): OngoingStubbing[ConnectorResult[MatchPersonResponse]] =
       when(
         npsConnector.matchPerson(
           request = ArgumentMatchers.eq(request)
@@ -68,10 +71,12 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         )
       ).thenReturn(EitherT(res))
 
-    def retrieveMpeMock(res: Future[Either[MpeError, ProtectionRecordDetails]]): OngoingStubbing[ConnectorResult[ProtectionRecordDetails]] =
+    def retrieveMpeMock(
+      res: Future[Either[MpeError, ProtectionRecordDetails]]
+    ): OngoingStubbing[ConnectorResult[ProtectionRecordDetails]] =
       when(
         npsConnector.retrieveMpe(
-          nino = ArgumentMatchers.eq(request.nino),
+          nino = ArgumentMatchers.eq(request.identifier),
           psaCheckRef = ArgumentMatchers.eq(request.psaCheckRef)
         )(
           hc = ArgumentMatchers.any(),
@@ -81,10 +86,10 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
   }
 
   "MembersLookUpOrchestrator" -> {
-    "matchAndRetrieve" -> {
+    "checkAndRetrieve" -> {
       "should return the expected result when match person check fails" in new Test {
         matchPersonMock(Future.successful(Left(InternalError.copy(source = MatchPerson))))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.matchAndRetrieve(request).value)
+        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(InvalidBearerTokenError) mustBe InternalError.copy(source = MatchPerson)
@@ -92,7 +97,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
 
       "should return the expected result when match person check returns NO MATCH" in new Test {
         matchPersonMock(Future.successful(Right(`NO MATCH`)))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.matchAndRetrieve(request).value)
+        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Right[_, _]]
         result.getOrElse(MatchAndRetrieveResult(`MATCH`, None)) mustBe MatchAndRetrieveResult(`NO MATCH`, None)
@@ -101,7 +106,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       "should return the expected result when MPE retrieval fails" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.successful(Left(UnexpectedStatusError)))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.matchAndRetrieve(request).value)
+        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(InvalidBearerTokenError) mustBe UnexpectedStatusError
@@ -110,7 +115,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       "should return the expected result when both checks succeeds" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.successful(Right(ProtectionRecordDetails(Seq(retrieveResponse)))))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.matchAndRetrieve(request).value)
+        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Right[_, _]]
         result.getOrElse(MatchAndRetrieveResult(`NO MATCH`, None)) mustBe MatchAndRetrieveResult(
@@ -122,7 +127,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       "should handle appropriately for a fatal error" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.failed(new TimeoutException))
-        lazy val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.matchAndRetrieve(request).value)
+        lazy val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
 
         assertThrows[TimeoutException](result)
       }

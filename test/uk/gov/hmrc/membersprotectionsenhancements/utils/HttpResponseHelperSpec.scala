@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import base.UnitBaseSpec
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InternalError, MpeError}
-import play.api.http.Status._
+import base.UnitBaseSpec
 import play.api.libs.json.{Json, Reads}
+import play.api.http.Status._
 import uk.gov.hmrc.http._
 
 class HttpResponseHelperSpec extends UnitBaseSpec {
@@ -37,15 +37,12 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
   private val dummyUrl: String = "some-url"
 
   "handleErrorResponse" -> {
-    def handleErrorScenario(status: Int,
-                            method: String,
-                            expectedErrorCode: String): Unit = {
+    def handleErrorScenario(status: Int, method: String, expectedErrorCode: String): Unit =
       s"[handleErrorResponse] should handle appropriately for method: $method, and status: $status" in {
         val dummyResponse = HttpResponse(status, "{}")
         lazy val testResult: MpeError = TestObject.handleErrorResponse(method, dummyUrl, dummyResponse)
         testResult.code mustBe expectedErrorCode
       }
-    }
 
     val testScenarios: Seq[(Int, String, String)] = Seq(
       (BAD_REQUEST, "GET", "BAD_REQUEST"),
@@ -59,9 +56,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
       (IM_A_TEAPOT, "GET", "UNEXPECTED_STATUS_ERROR")
     )
 
-    testScenarios.foreach(
-      scenario => handleErrorScenario(scenario._1, scenario._2, scenario._3)
-    )
+    testScenarios.foreach(scenario => handleErrorScenario(scenario._1, scenario._2, scenario._3))
   }
 
   "jsonValidation" -> {
@@ -79,7 +74,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         """.stripMargin
       )
 
-      res mustBe a [Left[_, _]]
+      res mustBe a[Left[_, _]]
       res mustBe Left(InternalError)
     }
 
@@ -99,33 +94,39 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
 
   "httpReads" -> {
     "[httpReads] should return an error for an expected error status" in {
-      val result: Either[MpeError, DummyClass] = TestObject.httpReads[DummyClass].read(
-        method = "GET",
-        url = dummyUrl,
-        response = HttpResponse(BAD_REQUEST, "")
-      )
+      val result: Either[MpeError, DummyClass] = TestObject
+        .httpReads[DummyClass]
+        .read(
+          method = "GET",
+          url = dummyUrl,
+          response = HttpResponse(BAD_REQUEST, "")
+        )
 
       result mustBe a[Left[_, _]]
       result.swap.getOrElse(InternalError).code mustBe "BAD_REQUEST"
     }
 
     "[httpReads] should handle appropriately for an unexpected status code" in {
-      val result: Either[MpeError, DummyClass] = TestObject.httpReads[DummyClass].read(
-        method = "GET",
-        url = dummyUrl,
-        response = HttpResponse(IM_A_TEAPOT, "")
-      )
+      val result: Either[MpeError, DummyClass] = TestObject
+        .httpReads[DummyClass]
+        .read(
+          method = "GET",
+          url = dummyUrl,
+          response = HttpResponse(IM_A_TEAPOT, "")
+        )
 
       result mustBe a[Left[_, _]]
       result.swap.getOrElse(InternalError).code mustBe "UNEXPECTED_STATUS_ERROR"
     }
 
     "[httpReads] should handle appropriately for a success" in {
-      val result: Either[MpeError, DummyClass] = TestObject.httpReads[DummyClass].read(
-        method = "GET",
-        url = dummyUrl,
-        response = HttpResponse(OK, """{"field": "value"}""")
-      )
+      val result: Either[MpeError, DummyClass] = TestObject
+        .httpReads[DummyClass]
+        .read(
+          method = "GET",
+          url = dummyUrl,
+          response = HttpResponse(OK, """{"field": "value"}""")
+        )
 
       result mustBe a[Right[_, _]]
       result.getOrElse(DummyClass("N/A")).field mustBe "value"

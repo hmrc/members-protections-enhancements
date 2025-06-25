@@ -17,15 +17,15 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import play.api.test.FakeRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{
   DataRetrievalAction,
   FakeDataRetrievalAction,
   IdentifierAction
 }
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.inject.bind
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
-import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers.{contentAsJson, defaultAwaitTimeout, status}
 import org.mockito.Mockito.reset
@@ -37,132 +37,270 @@ import play.api.Application
 import play.api.libs.json.{JsValue, Json}
 import play.api.http.Status._
 import uk.gov.hmrc.http.HeaderCarrier
+import org.scalatestplus.mockito.MockitoSugar.mock
+import uk.gov.hmrc.membersprotectionsenhancements.models.response._
+
+import scala.concurrent.Future
 
 class MembersLookUpControllerSpec extends ItBaseSpec {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-  private val fakeRequest = FakeRequest("POST", "/members-protections-enhancements/check-and-retrieve")
-  private val mockAuthConnector: AuthConnector = mock[AuthConnector]
-  private val mockAppConfig: AppConfig = mock[AppConfig]
+  trait Test {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val fakeRequest: FakeRequest[AnyContentAsEmpty.type] =
+      FakeRequest("POST", "/members-protections-enhancements/check-and-retrieve")
 
-  private val nino = "AA123456C"
-  private val psaCheckRef = "PSA12345678A"
-  private val retrieveUrl = s"/mpe-nps-stub/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
+    val nino: String = "AA123456C"
+    val psaCheckRef: String = "PSA12345678A"
+
+    val requestJson: JsValue = Json.parse(
+      """
+        |{
+        |    "firstName": "John",
+        |    "lastName": "Smith",
+        |    "dateOfBirth": "2024-12-31",
+        |    "nino": "AA123456C",
+        |    "psaCheckRef":"PSA12345678A"
+        |}
+      """.stripMargin
+    )
+
+    val downstreamRequestJson: String = Json
+      .parse(
+        """
+        |{
+        | "identifier": "AA123456C",
+        | "firstForename": "John",
+        | "surname": "Smith",
+        | "dateOfBirth": "2024-12-31"
+        |}
+      """.stripMargin
+      )
+      .toString()
+
+    val matchResponseJson: String =
+      """
+        |{
+        | "matchResult": "MATCH"
+        |}
+      """.stripMargin
+
+    val noMatchResponseJson: String =
+      """
+        |{
+        | "matchResult": "NO MATCH"
+        |}
+      """.stripMargin
+
+    val retrieveResponseJson: String =
+      """
+        |{
+        | "protectionRecords": [
+        |   {
+        |     "protectionReference": "some-id",
+        |     "type": "some-type",
+        |     "status": "some-status",
+        |     "protectedAmount": 1,
+        |     "lumpSumAmount": 1,
+        |     "lumpSumPercentage": 1,
+        |     "enhancementFactor": 0.5
+        |   }
+        | ]
+        |}
+        """.stripMargin
+
+    val responseModel: MatchAndRetrieveResult = MatchAndRetrieveResult(
+      matchResult = `MATCH`,
+      protectionRecords = Some(
+        Seq(
+          ProtectionRecord(
+            protectionReference = Some("some-id"),
+            `type` = "some-type",
+            status = "some-status",
+            protectedAmount = Some(1),
+            lumpSumAmount = Some(1),
+            lumpSumPercentage = Some(1),
+            enhancementFactor = Some(0.5)
+          )
+        )
+      )
+    )
+
+    val retrieveUrl: String = s"/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
+    val matchUrl: String = "/paye/individual/match"
+
+    val application: Application = new GuiceApplicationBuilder()
+      .configure(
+        "microservice.services.nps.port" -> wireMockPort,
+        "urls.npsContext" -> ""
+      )
+      .overrides(
+        bind[IdentifierAction].toInstance(fakePsaIdentifierAction),
+        bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction)
+      )
+      .build()
+
+    val controller: MembersLookUpController = application.injector.instanceOf[MembersLookUpController]
+
+    def setupStubs(
+      downstreamRequestBody: String,
+      matchStatus: Int,
+      matchResponse: String,
+      retrieveStatus: Int,
+      retrieveResponse: String,
+      withRetrieveStub: Boolean
+    ): StubMapping = {
+      def stubMatch: StubMapping = stubPost(
+        url = matchUrl,
+        requestBody = downstreamRequestBody,
+        response = aResponse.withStatus(matchStatus).withBody(matchResponse)
+      )
+
+      if (withRetrieveStub) {
+        stubMatch
+        stubGet(
+          url = retrieveUrl,
+          response = aResponse.withStatus(retrieveStatus).withBody(retrieveResponse)
+        )
+      } else {
+        stubMatch
+      }
+    }
+  }
+
+  val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  val mockAppConfig: AppConfig = mock[AppConfig]
 
   override def beforeEach(): Unit = {
     reset(mockAuthConnector)
     reset(mockAppConfig)
   }
 
-  val application: Application = new GuiceApplicationBuilder()
-    .configure("microservice.services.nps.port" -> wireMockPort)
-    .overrides(
-      bind[IdentifierAction].toInstance(fakePsaIdentifierAction),
-      bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction)
-    )
-    .build()
+  "MemberLookUpController" when {
+    "checkAndRetrieve" should {
+      "[checkAndRetrieve] return 200 for a valid members data and match" in new Test {
+        setupStubs(
+          downstreamRequestBody = downstreamRequestJson,
+          matchStatus = OK,
+          matchResponse = matchResponseJson,
+          retrieveStatus = OK,
+          retrieveResponse = retrieveResponseJson,
+          withRetrieveStub = true
+        )
 
-  private val controller = application.injector.instanceOf[MembersLookUpController]
+        val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
+        val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
-  val requestJson: JsValue = Json.parse("""
-                                   |{
-                                   |    "firstName": "Naren",
-                                   |    "lastName": "Vijay",
-                                   |    "dateOfBirth": "2024-12-31",
-                                   |    "nino": "AA123456C",
-                                   |    "psaCheckRef":"PSA12345678A"
-                                   |}""".stripMargin)
+        status(result) mustBe OK
+        contentAsJson(result) mustBe Json.toJson(responseModel)
+      }
 
-  "MemberLookUpController" should {
-    "should return 200 for a valid members data" in {
+      "[checkAndRetrieve] return 200 for a no match" in new Test {
+        setupStubs(
+          downstreamRequestBody = downstreamRequestJson,
+          matchStatus = OK,
+          matchResponse = noMatchResponseJson,
+          retrieveStatus = IM_A_TEAPOT,
+          retrieveResponse = "N/A",
+          withRetrieveStub = false
+        )
 
-      val response: String =
-        """
-          |{
-          | "protectionRecords": [
-          |   {
-          |     "protectionReference": "some-id",
-          |     "type": "some-type",
-          |     "status": "some-status",
-          |     "protectedAmount": 1,
-          |     "lumpSumAmount": 1,
-          |     "lumpSumPercentage": 1,
-          |     "enhancementFactor": 0.5
-          |   }
-          | ]
-          |}
-        """.stripMargin
+        val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
+        val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
-      stubGet(retrieveUrl, ok(response))
+        status(result) mustBe OK
+        contentAsJson(result) mustBe Json.toJson(MatchAndRetrieveResult(`NO MATCH`, None))
+      }
 
-      val postRequest = fakeRequest.withBody(requestJson)
-      val result = controller.checkAndRetrieve(postRequest)
-      status(result) mustBe OK
-      contentAsJson(result) mustBe Json.parse(response)
-    }
+      "[checkAndRetrieve] should handle validation failures" in new Test {
+        setupStubs(
+          downstreamRequestBody = downstreamRequestJson,
+          matchStatus = OK,
+          matchResponse = "N/A",
+          retrieveStatus = OK,
+          retrieveResponse = "N/A",
+          withRetrieveStub = false
+        )
 
-    "should return 404 when no results found" in {
+        val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(
+          Json.parse(
+            """
+            |{
+            | "firstName": "Naren",
+            | "lastName": "Vijay",
+            | "nino": "AA123456C",
+            | "psaCheckRef":"PSA12345678A"
+            |}
+          """.stripMargin
+          )
+        )
 
-      val response = MpeError(
-        "NOT_FOUND",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 404 (Not Found). Response body: ''"
+        val result: Future[Result] = controller.checkAndRetrieve(postRequest)
+
+        status(result) mustBe BAD_REQUEST
+        contentAsJson(result).toString() must include("Missing or invalid dateOfBirth")
+      }
+
+      def handleMatchErrors(errorStatus: Int, errorCode: String, expectedStatus: Int): Unit =
+        s"[checkAndRetrieve] handle appropriately when match API returns error status: $errorStatus" in new Test {
+          setupStubs(
+            downstreamRequestBody = downstreamRequestJson,
+            matchStatus = errorStatus,
+            matchResponse = "N/A",
+            retrieveStatus = IM_A_TEAPOT,
+            retrieveResponse = "N/A",
+            withRetrieveStub = false
+          )
+
+          val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
+          val result: Future[Result] = controller.checkAndRetrieve(postRequest)
+
+          status(result) mustBe expectedStatus
+          val content: String = contentAsJson(result).toString()
+          content must include(errorCode)
+          content must include("MatchPerson")
+        }
+
+      val errorCases: Seq[(Int, String, Int)] = Seq(
+        (BAD_REQUEST, "BAD_REQUEST", BAD_REQUEST),
+        (FORBIDDEN, "FORBIDDEN", FORBIDDEN),
+        (INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", INTERNAL_SERVER_ERROR),
+        (SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", INTERNAL_SERVER_ERROR),
+        (IM_A_TEAPOT, "UNEXPECTED_STATUS_ERROR", INTERNAL_SERVER_ERROR)
       )
 
-      stubGet(retrieveUrl, notFound())
+      errorCases.foreach(errorCase => handleMatchErrors(errorCase._1, errorCase._2, errorCase._3))
 
-      val postRequest = fakeRequest.withBody(requestJson)
-      val result = controller.checkAndRetrieve(postRequest)
-      status(result) mustBe NOT_FOUND
-      contentAsJson(result) mustBe Json.toJson(response)
-    }
+      def handleRetrieveErrors(errorStatus: Int, errorCode: String, expectedStatus: Int): Unit =
+        s"[checkAndRetrieve] handle appropriately when retrieve API returns error status: $errorStatus" in new Test {
+          setupStubs(
+            downstreamRequestBody = downstreamRequestJson,
+            matchStatus = OK,
+            matchResponse = matchResponseJson,
+            retrieveStatus = errorStatus,
+            retrieveResponse = "N/A",
+            withRetrieveStub = true
+          )
 
-    "should return 400 when invalid or insufficient data submitted" in {
+          val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
+          val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
-      val json: JsValue = Json.parse("""
-          |{
-          |    "firstName": "Naren",
-          |    "lastName": "lastname",
-          |    "dateOfBirth": "2024-12-31",
-          |    "nino": "AA123456C"
-          |}""".stripMargin)
+          status(result) mustBe expectedStatus
+          val content: String = contentAsJson(result).toString()
+          content must include(errorCode)
+          content must include("RetrieveMpe")
+        }
 
-      val response = MpeError("BAD_REQUEST", "Invalid request data", Some(Seq("Missing or invalid psaCheckRef")))
-
-      val postRequest = fakeRequest.withBody(json)
-      val result = controller.checkAndRetrieve(postRequest)
-      status(result) mustBe BAD_REQUEST
-      contentAsJson(result) mustBe Json.toJson(response)
-    }
-
-    "should return 403 for an UNPROCESSED error" in {
-
-      val response = MpeError(
-        "FORBIDDEN",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 403. Response body: ''"
+      val retrieveErrorCases: Seq[(Int, String, Int)] = Seq(
+        (BAD_REQUEST, "BAD_REQUEST", BAD_REQUEST),
+        (FORBIDDEN, "FORBIDDEN", FORBIDDEN),
+        (NOT_FOUND, "NOT_FOUND", NOT_FOUND),
+        (UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", INTERNAL_SERVER_ERROR),
+        (INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", INTERNAL_SERVER_ERROR),
+        (SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", INTERNAL_SERVER_ERROR),
+        (IM_A_TEAPOT, "UNEXPECTED_STATUS_ERROR", INTERNAL_SERVER_ERROR)
       )
 
-      stubGet(retrieveUrl, forbidden())
-
-      val postRequest = fakeRequest.withBody(requestJson)
-      val result = controller.checkAndRetrieve(postRequest)
-      status(result) mustBe FORBIDDEN
-      contentAsJson(result) mustBe Json.toJson(response)
-    }
-
-    "should return 500 for any server error" in {
-
-      val response = MpeError(
-        "INTERNAL_ERROR",
-        "GET of 'http://localhost:6001/mpe-nps-stub/paye/lifetime-allowance/person/AA123456C/admin-reference/PSA12345678A/lookup' returned 500. Response body: ''"
-      )
-
-      stubGet(retrieveUrl, serverError())
-
-      val postRequest = fakeRequest.withBody(requestJson)
-      val result = controller.checkAndRetrieve(postRequest)
-      status(result) mustBe INTERNAL_SERVER_ERROR
-      contentAsJson(result) mustBe Json.toJson(response)
+      retrieveErrorCases.foreach(errorCase => handleRetrieveErrors(errorCase._1, errorCase._2, errorCase._3))
     }
   }
-
 }

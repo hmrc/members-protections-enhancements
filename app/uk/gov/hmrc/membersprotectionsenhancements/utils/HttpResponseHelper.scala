@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import com.fasterxml.jackson.core.JsonParseException
-import com.fasterxml.jackson.databind.JsonMappingException
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InternalError, MpeError, UnexpectedStatusError}
+import com.fasterxml.jackson.databind.JsonMappingException
+import com.fasterxml.jackson.core.JsonParseException
+import play.api.libs.json._
 import play.api.http.Status._
-import play.api.libs.json.{JsError, JsResultException, JsSuccess, JsValue, Json, Reads}
 import uk.gov.hmrc.http._
 
 trait HttpResponseHelper extends HttpErrorFunctions with Logging {
@@ -128,8 +128,7 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
   }
 }
 
-class UnrecognisedHttpResponseException(method: String,
-                                        url: String,
-                                        response: HttpResponse) extends Exception(
-  s"$method to $url failed with status ${response.status}. Response body: '${response.body}'"
-)
+class UnrecognisedHttpResponseException(method: String, url: String, response: HttpResponse)
+    extends Exception(
+      s"$method to $url failed with status ${response.status}. Response body: '${response.body}'"
+    )

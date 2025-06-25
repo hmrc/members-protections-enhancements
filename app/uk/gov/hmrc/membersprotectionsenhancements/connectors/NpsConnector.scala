@@ -16,19 +16,20 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
 import cats.data.EitherT
+import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey}
 import play.api.libs.json.Json
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ProtectionRecordDetails}
 import uk.gov.hmrc.membersprotectionsenhancements.utils.HttpResponseHelper
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{MatchPerson, MpeError, RetrieveMpe}
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
-import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey}
 
 import scala.concurrent.ExecutionContext
+
 import javax.inject.{Inject, Singleton}
 import java.net.URI
 
@@ -49,7 +50,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .post(URI.create(matchIndividualAccountUrl).toURL)
         .withBody(Json.toJson(request)(matchPersonWrites))
         .setHeader(
-          (correlationIdKey, "TODO"), //TODO: Populate with an actual correlation ID
+          (correlationIdKey, "TODO"), // TODO: Populate with an actual correlation ID
           (govUkOriginatorIdKey, config.matchPersonGovUkOriginatorId)
         )
         .execute[Either[MpeError, MatchPersonResponse]]
@@ -67,7 +68,6 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     )
   }
 
-
   def retrieveMpe(nino: String, psaCheckRef: String)
                  (implicit hc: HeaderCarrier, ec: ExecutionContext): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "retrieve"
@@ -81,7 +81,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
       http
         .get(URI.create(retrieveUrl).toURL)
         .setHeader(
-          (correlationIdKey, "TODO"), //TODO: Populate with an actual correlation ID
+          (correlationIdKey, "TODO"), // TODO: Populate with an actual correlation ID
           (govUkOriginatorIdKey, config.retrieveMpeGovUkOriginatorId)
         )
         .execute[Either[MpeError, ProtectionRecordDetails]]

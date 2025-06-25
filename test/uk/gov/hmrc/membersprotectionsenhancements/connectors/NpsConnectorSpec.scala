@@ -16,22 +16,23 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
-import play.api.inject.guice.GuiceApplicationBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
 import base.ItBaseSpec
-import play.api.Application
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, IM_A_TEAPOT, INTERNAL_SERVER_ERROR, NOT_FOUND, SERVICE_UNAVAILABLE, UNPROCESSABLE_ENTITY}
-import play.api.libs.json.JsObject
-import play.api.test.DefaultAwaitTimeout
-import play.api.test.Helpers.await
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ProtectionRecord, ProtectionRecordDetails, `MATCH`, `NO MATCH`}
+import uk.gov.hmrc.membersprotectionsenhancements.models.response._
+import play.api.test.DefaultAwaitTimeout
+import com.github.tomakehurst.wiremock.client.WireMock
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.Helpers.await
+import play.api.Application
+import play.api.libs.json.JsObject
+import play.api.http.Status._
+import uk.gov.hmrc.http.HeaderCarrier
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
@@ -59,7 +60,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
         firstName = "Paul",
         lastName = "Smith",
         dateOfBirth = LocalDate.of(2024, 12, 31),
-        nino = "AA123456C",
+        identifier = "AA123456C",
         psaCheckRef = "PSA12345678A"
       )
 
@@ -99,7 +100,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Left[_, _]]
+        result mustBe a[Left[_, _]]
         result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "UNEXPECTED_STATUS_ERROR"
       }
 
@@ -114,7 +115,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Left[_, _]]
+        result mustBe a[Left[_, _]]
         result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -135,7 +136,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Left[_, _]]
+        result mustBe a[Left[_, _]]
         result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -156,7 +157,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Right[_, _]]
+        result mustBe a[Right[_, _]]
         result.getOrElse(`NO MATCH`) mustBe `MATCH`
       }
     }
@@ -200,7 +201,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Left[_, _]]
+        result mustBe a[Left[_, _]]
         result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "UNEXPECTED_STATUS_ERROR"
       }
 
@@ -214,7 +215,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Left[_, _]]
+        result mustBe a[Left[_, _]]
         result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -244,7 +245,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Left[_, _]]
+        result mustBe a[Left[_, _]]
         result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -274,7 +275,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
-        result mustBe a [Right[_, _]]
+        result mustBe a[Right[_, _]]
         result.getOrElse(ProtectionRecordDetails(Nil)).protectionRecords.head mustBe ProtectionRecord(
           protectionReference = Some("some-id"),
           `type` = "some-type",

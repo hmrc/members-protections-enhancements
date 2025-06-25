@@ -41,22 +41,30 @@ class MembersLookUpController @Inject() (
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
+  val classLoggingContext: String = "MembersLookUpController"
 
   def checkAndRetrieve: Action[JsValue] = identify.andThen(getData).async(parse.json) { request =>
+    val methodLoggingContext: String = "checkAndRetrieve"
+    val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
+
+    logger.info(
+      s"$fullLoggingContext - Received authenticated request to perform check and retrieve for supplied member details"
+    )
+
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
     val result =
       for {
         validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body))
-        response <- EitherT(orchestrator.checkAndRetrieve(validatedRequest))
+        response <- orchestrator.checkAndRetrieve(validatedRequest)
       } yield {
-        logger.info(s"[MembersLookUpController][checkAndRetrieve] - Success response received ")
+        logger.info(s"$fullLoggingContext - Success response received")
 
         Ok(Json.toJson(response))
       }
 
     result.leftMap { error =>
-      logger.warn(s"[MembersLookUpController][checkAndRetrieve] - Error response received: $error")
+      logger.warn(s"$fullLoggingContext - Error response received: $error")
       error.code match {
         case "BAD_REQUEST" => BadRequest(Json.toJson(error))
         case "NOT_FOUND" => NotFound(Json.toJson(error))

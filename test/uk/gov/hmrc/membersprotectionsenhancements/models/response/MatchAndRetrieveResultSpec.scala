@@ -22,17 +22,19 @@ import play.api.libs.json._
 class MatchAndRetrieveResultSpec extends UnitBaseSpec {
   val testModel: MatchAndRetrieveResult = MatchAndRetrieveResult(
     matchResult = `MATCH`,
-    protectionRecords = Some(Seq(
-      ProtectionRecord(
-        protectionReference = Some("some-id"),
-        `type` = "some-type",
-        status = "some-status",
-        protectedAmount = Some(1),
-        lumpSumAmount = Some(1),
-        lumpSumPercentage = Some(1),
-        enhancementFactor = Some(0.5)
+    protectionRecords = Some(
+      Seq(
+        ProtectionRecord(
+          protectionReference = Some("some-id"),
+          `type` = "some-type",
+          status = "some-status",
+          protectedAmount = Some(1),
+          lumpSumAmount = Some(1),
+          lumpSumPercentage = Some(1),
+          enhancementFactor = Some(0.5)
+        )
       )
-    ))
+    )
   )
 
   val testJson: JsValue = Json.parse(
