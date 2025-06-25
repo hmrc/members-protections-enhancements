@@ -17,11 +17,7 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import play.api.test.FakeRequest
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{
-  DataRetrievalAction,
-  FakeDataRetrievalAction,
-  IdentifierAction
-}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.inject.bind
@@ -46,8 +42,11 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
   trait Test {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val fakeRequest: FakeRequest[AnyContentAsEmpty.type] =
-      FakeRequest("POST", "/members-protections-enhancements/check-and-retrieve")
+
+    val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(
+      method = "POST",
+      path = "/members-protections-enhancements/check-and-retrieve"
+    )
 
     val nino: String = "AA123456C"
     val psaCheckRef: String = "PSA12345678A"
@@ -141,14 +140,12 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
     val controller: MembersLookUpController = application.injector.instanceOf[MembersLookUpController]
 
-    def setupStubs(
-      downstreamRequestBody: String,
-      matchStatus: Int,
-      matchResponse: String,
-      retrieveStatus: Int,
-      retrieveResponse: String,
-      withRetrieveStub: Boolean
-    ): StubMapping = {
+    def setupStubs(downstreamRequestBody: String,
+                   matchStatus: Int,
+                   matchResponse: String,
+                   retrieveStatus: Int,
+                   retrieveResponse: String,
+                   withRetrieveStub: Boolean): StubMapping = {
       def stubMatch: StubMapping = stubPost(
         url = matchUrl,
         requestBody = downstreamRequestBody,

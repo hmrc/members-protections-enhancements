@@ -27,7 +27,7 @@ import scala.concurrent.ExecutionContext
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpValidator @Inject() ()(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpValidator @Inject()(implicit val ec: ExecutionContext) extends Logging {
   val classLoggingContext: String = "MembersLookUpValidator"
 
   def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] = {

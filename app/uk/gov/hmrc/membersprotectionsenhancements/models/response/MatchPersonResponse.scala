@@ -25,7 +25,7 @@ case object `MATCH` extends MatchPersonResponse
 case object `NO MATCH` extends MatchPersonResponse
 
 object MatchPersonResponse {
-  val enumFormat: Format[MatchPersonResponse] = Enums.format[MatchPersonResponse]
+  private val enumFormat: Format[MatchPersonResponse] = Enums.format[MatchPersonResponse]
   implicit val reads: Reads[MatchPersonResponse] = (__ \ "matchResult").read[MatchPersonResponse](enumFormat)
   implicit def genericWrites[T <: MatchPersonResponse]: Writes[T] = enumFormat.contramap[T](c => c: MatchPersonResponse)
 }

@@ -32,15 +32,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpController @Inject() (
-  cc: ControllerComponents,
-  identify: IdentifierAction,
-  getData: DataRetrievalAction,
-  orchestrator: MembersLookUpOrchestrator,
-  validator: MembersLookUpValidator
-)(implicit ec: ExecutionContext)
-    extends BackendController(cc)
-    with Logging {
+class MembersLookUpController @Inject()(cc: ControllerComponents,
+                                        identify: IdentifierAction,
+                                        getData: DataRetrievalAction,
+                                        orchestrator: MembersLookUpOrchestrator,
+                                        validator: MembersLookUpValidator)
+                                       (implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
   val classLoggingContext: String = "MembersLookUpController"
 
   def checkAndRetrieve: Action[JsValue] = identify.andThen(getData).async(parse.json) { request =>

@@ -29,13 +29,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit val ec: ExecutionContext)
-    extends Logging {
+class MembersLookUpOrchestrator @Inject()(npsConnector: NpsConnector)
+                                         (implicit val ec: ExecutionContext) extends Logging {
   val classLoggingContext: String = "MembersLookUpOrchestrator"
 
-  def checkAndRetrieve(
-    request: PensionSchemeMemberRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, MpeError, MatchAndRetrieveResult] = {
+  def checkAndRetrieve(request: PensionSchemeMemberRequest)
+                      (implicit hc: HeaderCarrier): EitherT[Future, MpeError, MatchAndRetrieveResult] = {
     val methodLoggingContext: String = "checkAndRetrieve"
     val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 

@@ -34,7 +34,7 @@ import javax.inject.{Inject, Singleton}
 import java.net.URI
 
 @Singleton
-class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
+class NpsConnector @Inject()(val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
   protected val classLoggingContext: String = "NpsConnector"
 
   def matchPerson(request: PensionSchemeMemberRequest)
