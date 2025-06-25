@@ -15,7 +15,7 @@ class MatchPersonResponseSpec extends UnitBaseSpec {
 
       val result = Json.parse(json).validate[MatchPersonResponse]
       result mustBe a[JsSuccess[_]]
-      result.get.matchResult mustBe "MATCH"
+      result.get mustBe Match
     }
 
     "[reads] should return the expected object for valid JSON with no match" in {
@@ -28,7 +28,7 @@ class MatchPersonResponseSpec extends UnitBaseSpec {
 
       val result = Json.parse(json).validate[MatchPersonResponse]
       result mustBe a[JsSuccess[_]]
-      result.get.matchResult mustBe "NO MATCH"
+      result.get mustBe NoMatch
     }
 
     "[reads] should return an error for valid JSON which breaks validation rules" in {
