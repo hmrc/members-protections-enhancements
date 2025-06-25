@@ -18,7 +18,10 @@ package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
 import play.api.libs.json.{Json, OWrites}
 
-sealed case class MpeError(code: String, message: String, reasons: Option[Seq[String]] = None)
+sealed case class MpeError(code: String,
+                           message: String,
+                           reasons: Option[Seq[String]] = None,
+                           source: ErrorSource = Internal)
 
 object MpeError {
   implicit val writes: OWrites[MpeError] = Json.writes[MpeError]
@@ -50,10 +53,4 @@ object UnexpectedStatusError
   extends MpeError(
     code = "UNEXPECTED_STATUS_ERROR",
     message = "An unexpected status code was returned from downstream"
-  )
-
-object NoMatchError
-  extends MpeError(
-    code = "NO_MATCH_FOUND",
-    message = "NPS has indicated that no match could be found"
   )

@@ -1,16 +1,17 @@
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-import play.api.libs.json.{JsPath, Reads}
-import uk.gov.hmrc.membersprotectionsenhancements.utils.MpeReads.matchResult
+import play.api.libs.json.{Format, Reads, Writes, __}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.enums.Enums
 
-sealed abstract class MatchPersonResponse(val value: String)
+sealed abstract class MatchPersonResponse
 
-case object Match extends MatchPersonResponse("MATCH")
-case object NoMatch extends MatchPersonResponse("NO MATCH")
+case object `MATCH` extends MatchPersonResponse
+case object `NO MATCH` extends MatchPersonResponse
 
 object MatchPersonResponse {
-  implicit val reads: Reads[MatchPersonResponse] =
-    (JsPath \ "matchResult").read[String](matchResult).map(str => if(str == "MATCH") Match else NoMatch)
+  val enumFormat: Format[MatchPersonResponse] = Enums.format[MatchPersonResponse]
+  implicit val reads: Reads[MatchPersonResponse] = (__ \ "matchResult").read[MatchPersonResponse](enumFormat)
+  implicit def genericWrites[T <: MatchPersonResponse]: Writes[T] = enumFormat.contramap[T](c => c: MatchPersonResponse)
 }
 
 

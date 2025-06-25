@@ -45,9 +45,9 @@ import play.api.test.Helpers.running
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.{BeforeAndAfterEach, OptionValues, TryValues}
 import play.api.Application
+import play.api.libs.json.{JsResult, JsString, JsSuccess, Reads}
 
 import scala.reflect.ClassTag
-
 import java.net.URLEncoder
 
 trait UnitBaseSpec

@@ -16,22 +16,46 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
+import cats.data.EitherT
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
 import uk.gov.hmrc.membersprotectionsenhancements.connectors.NpsConnector
 import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.ProtectionRecordDetails
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MATCH, MatchAndRetrieveResult, `NO MATCH`}
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject() (nps: NpsConnector)(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpOrchestrator @Inject()(npsConnector: NpsConnector)
+                                         (implicit val ec: ExecutionContext) extends Logging {
+  val classLoggingContext: String = "MembersLookUpOrchestrator"
 
-  def checkAndRetrieve(request: PensionSchemeMemberRequest)(implicit
-    hc: HeaderCarrier
-  ): Future[Either[MpeError, ProtectionRecordDetails]] =
-    nps.retrieve(request.nino, request.psaCheckRef)
+  def matchAndRetrieve(request: PensionSchemeMemberRequest)
+                      (implicit hc: HeaderCarrier): EitherT[Future, MpeError, MatchAndRetrieveResult] = {
+    val methodLoggingContext: String = "checkAndRetrieve"
+    val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
+
+    logger.info(s"$fullLoggingContext - Received request to perform match and retrieve for supplied member details")
+
+    val result: EitherT[Future, MpeError, MatchAndRetrieveResult] = npsConnector.matchPerson(request)
+      .flatMap {
+        case MATCH =>
+          logger.info(s"$fullLoggingContext - Supplied member details successfully matched. Proceeding to retrieval")
+
+          npsConnector.retrieveMpe(request.nino, request.psaCheckRef).subflatMap(details => {
+            logger.info(s"$fullLoggingContext - Successfully retrieved protections and enhancements data")
+            Right(MatchAndRetrieveResult(MATCH, Some(details.protectionRecords)))
+          })
+        case `NO MATCH` =>
+          logger.warn(s"$fullLoggingContext - No match was found for the supplied member details")
+          EitherT.right(Future.successful(MatchAndRetrieveResult(`NO MATCH`, None)))
+      }
+
+    result.leftMap(err => {
+      logger.warn(s"$fullLoggingContext - An error occurred with source: ${err.source}")
+      err
+    })
+  }
 }

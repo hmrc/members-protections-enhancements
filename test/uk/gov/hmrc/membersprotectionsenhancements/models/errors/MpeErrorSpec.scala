@@ -6,11 +6,13 @@ import play.api.libs.json.Json
 class MpeErrorSpec extends UnitBaseSpec {
   "MpeError" -> {
     "writes should return the expected JSON" in {
-      MpeError.writes.writes(MpeError("CODE", "Message")) mustBe Json.parse(
+      MpeError.writes.writes(MpeError("CODE", "Message", reasons = Some(Seq("reason")))) mustBe Json.parse(
         """
           |{
           | "code": "CODE",
-          | "message": "Message"
+          | "message": "Message",
+          | "source": "Internal",
+          | "reasons": ["reason"]
           |}
         """.stripMargin
       )
@@ -21,7 +23,8 @@ class MpeErrorSpec extends UnitBaseSpec {
         """
           |{
           | "code": "INTERNAL_SERVER_ERROR",
-          | "message": "An internal server error occurred"
+          | "message": "An internal server error occurred",
+          | "source": "Internal"
           |}
         """.stripMargin
       )

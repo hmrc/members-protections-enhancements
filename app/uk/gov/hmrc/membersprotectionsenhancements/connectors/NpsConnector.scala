@@ -22,7 +22,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ProtectionRecordDetails}
 import uk.gov.hmrc.membersprotectionsenhancements.utils.HttpResponseHelper
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{MatchPerson, MpeError, RetrieveMpe}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
@@ -58,7 +58,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         logger.warn(
           s"$fullContext - Request to check for a matching individual failed with error code: ${err.code}"
         )
-        err
+        err.copy(source = MatchPerson)
       },
       resp => {
         logger.info(s"$fullContext - Request to check for a matching individual completed successfully")
@@ -90,7 +90,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         logger.warn(
           s"$fullContext - Request to retrieve protections and enhancements failed with error code: ${err.code}"
         )
-        err
+        err.copy(source = RetrieveMpe)
       },
       resp => {
         logger.info(s"$fullContext - Request to retrieve protections and enhancements completed successfully")
