@@ -56,6 +56,13 @@ object NoMatchError
       source = MatchPerson
     )
 
+object EmptyDataError
+  extends MpeError(
+    code = "EMPTY_DATA",
+    message = "Retrieve API returned a successful response containing no supported protections or enhancements",
+    source = RetrieveMpe
+  )
+
 object UnexpectedStatusError
     extends MpeError(
       code = "UNEXPECTED_STATUS_ERROR",

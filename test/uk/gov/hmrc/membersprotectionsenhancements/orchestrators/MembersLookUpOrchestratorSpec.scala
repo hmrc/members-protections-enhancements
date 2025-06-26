@@ -112,6 +112,15 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         result.swap.getOrElse(InvalidBearerTokenError) mustBe UnexpectedStatusError
       }
 
+      "should return the expected result when no supported data exists" in new Test {
+        matchPersonMock(Future.successful(Right(MATCH)))
+        retrieveMpeMock(Future.successful(Right(ProtectionRecordDetails(Nil))))
+        val result: Either[MpeError, ProtectionRecordDetails] = await(orchestrator.checkAndRetrieve(request).value)
+
+        result mustBe a[Left[_, _]]
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe EmptyDataError
+      }
+
       "should return the expected result when both calls succeeds" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.successful(Right(ProtectionRecordDetails(Seq(retrieveResponse)))))

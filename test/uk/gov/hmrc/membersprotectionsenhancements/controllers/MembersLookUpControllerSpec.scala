@@ -17,7 +17,7 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import play.api.test.FakeRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.NoMatchError
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, NoMatchError}
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.mvc.{AnyContentAsEmpty, Result}
@@ -189,7 +189,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         contentAsJson(result) mustBe Json.toJson(responseModel)
       }
 
-      "[checkAndRetrieve] return 200 for a no match" in new Test {
+      "[checkAndRetrieve] return 404 for a no match" in new Test {
         setupStubs(
           downstreamRequestBody = downstreamRequestJson,
           matchStatus = OK,
@@ -204,6 +204,23 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
         status(result) mustBe NOT_FOUND
         contentAsJson(result) mustBe Json.toJson(NoMatchError)
+      }
+
+      "[checkAndRetrieve] return 404 for an empty data response" in new Test {
+        setupStubs(
+          downstreamRequestBody = downstreamRequestJson,
+          matchStatus = OK,
+          matchResponse = matchResponseJson,
+          retrieveStatus = OK,
+          retrieveResponse = """{"protectionRecords": []}""",
+          withRetrieveStub = true
+        )
+
+        val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
+        val result: Future[Result] = controller.checkAndRetrieve(postRequest)
+
+        status(result) mustBe NOT_FOUND
+        contentAsJson(result) mustBe Json.toJson(EmptyDataError)
       }
 
       "[checkAndRetrieve] should handle validation failures" in new Test {

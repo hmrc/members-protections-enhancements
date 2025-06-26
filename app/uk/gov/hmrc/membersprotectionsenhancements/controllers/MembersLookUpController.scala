@@ -64,7 +64,7 @@ class MembersLookUpController @Inject()(cc: ControllerComponents,
       logger.warn(s"$fullLoggingContext - Error response received: $error")
       error.code match {
         case "BAD_REQUEST" => BadRequest(Json.toJson(error))
-        case "NOT_FOUND" | "NO_MATCH" => NotFound(Json.toJson(error))
+        case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(error))
         case "FORBIDDEN" => Forbidden(Json.toJson(error))
         case _ => InternalServerError(Json.toJson(error))
       }
