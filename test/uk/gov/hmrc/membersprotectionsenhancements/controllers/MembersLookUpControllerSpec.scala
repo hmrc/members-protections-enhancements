@@ -17,6 +17,7 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import play.api.test.FakeRequest
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.NoMatchError
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.mvc.{AnyContentAsEmpty, Result}
@@ -107,19 +108,16 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         |}
         """.stripMargin
 
-    val responseModel: MatchAndRetrieveResult = MatchAndRetrieveResult(
-      matchResult = `MATCH`,
-      protectionRecords = Some(
-        Seq(
-          ProtectionRecord(
-            protectionReference = Some("some-id"),
-            `type` = "some-type",
-            status = "some-status",
-            protectedAmount = Some(1),
-            lumpSumAmount = Some(1),
-            lumpSumPercentage = Some(1),
-            enhancementFactor = Some(0.5)
-          )
+    val responseModel: ProtectionRecordDetails = ProtectionRecordDetails(
+      Seq(
+        ProtectionRecord(
+          protectionReference = Some("some-id"),
+          `type` = "some-type",
+          status = "some-status",
+          protectedAmount = Some(1),
+          lumpSumAmount = Some(1),
+          lumpSumPercentage = Some(1),
+          enhancementFactor = Some(0.5)
         )
       )
     )
@@ -204,8 +202,8 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
         val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
-        status(result) mustBe OK
-        contentAsJson(result) mustBe Json.toJson(MatchAndRetrieveResult(`NO MATCH`, None))
+        status(result) mustBe NOT_FOUND
+        contentAsJson(result) mustBe Json.toJson(NoMatchError)
       }
 
       "[checkAndRetrieve] should handle validation failures" in new Test {

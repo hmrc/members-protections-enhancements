@@ -72,13 +72,6 @@ class MatchPersonResponseSpec extends UnitBaseSpec {
         result mustBe a[JsError]
       }
     }
-
-    "writes" -> {
-      "[writes] should return the expected object" in {
-        Json.toJson(`MATCH`) mustBe JsString("MATCH")
-        Json.toJson(`NO MATCH`) mustBe JsString("NO MATCH")
-      }
-    }
   }
 
 }

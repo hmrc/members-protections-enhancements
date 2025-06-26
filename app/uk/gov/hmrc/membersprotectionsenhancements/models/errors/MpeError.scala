@@ -49,6 +49,13 @@ object InternalError
       message = "An internal server error occurred"
     )
 
+object NoMatchError
+    extends MpeError(
+      code = "NO_MATCH",
+      message = "Matching API returned NO MATCH result for supplied member details",
+      source = MatchPerson
+    )
+
 object UnexpectedStatusError
     extends MpeError(
       code = "UNEXPECTED_STATUS_ERROR",

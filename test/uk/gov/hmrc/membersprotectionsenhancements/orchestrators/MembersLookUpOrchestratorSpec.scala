@@ -89,7 +89,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     "checkAndRetrieve" -> {
       "should return the expected result when match person check fails" in new Test {
         matchPersonMock(Future.successful(Left(InternalError.copy(source = MatchPerson))))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
+        val result: Either[MpeError, ProtectionRecordDetails] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(InvalidBearerTokenError) mustBe InternalError.copy(source = MatchPerson)
@@ -97,37 +97,34 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
 
       "should return the expected result when match person check returns NO MATCH" in new Test {
         matchPersonMock(Future.successful(Right(`NO MATCH`)))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
+        val result: Either[MpeError, ProtectionRecordDetails] = await(orchestrator.checkAndRetrieve(request).value)
 
-        result mustBe a[Right[_, _]]
-        result.getOrElse(MatchAndRetrieveResult(`MATCH`, None)) mustBe MatchAndRetrieveResult(`NO MATCH`, None)
+        result mustBe a[Left[_, _]]
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe NoMatchError
       }
 
       "should return the expected result when MPE retrieval fails" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.successful(Left(UnexpectedStatusError)))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
+        val result: Either[MpeError, ProtectionRecordDetails] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(InvalidBearerTokenError) mustBe UnexpectedStatusError
       }
 
-      "should return the expected result when both checks succeeds" in new Test {
+      "should return the expected result when both calls succeeds" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.successful(Right(ProtectionRecordDetails(Seq(retrieveResponse)))))
-        val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
+        val result: Either[MpeError, ProtectionRecordDetails] = await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Right[_, _]]
-        result.getOrElse(MatchAndRetrieveResult(`NO MATCH`, None)) mustBe MatchAndRetrieveResult(
-          matchResult = `MATCH`,
-          protectionRecords = Some(Seq(retrieveResponse))
-        )
+        result.getOrElse(ProtectionRecordDetails(Nil)) mustBe ProtectionRecordDetails(Seq(retrieveResponse))
       }
 
       "should handle appropriately for a fatal error" in new Test {
         matchPersonMock(Future.successful(Right(MATCH)))
         retrieveMpeMock(Future.failed(new TimeoutException))
-        lazy val result: Either[MpeError, MatchAndRetrieveResult] = await(orchestrator.checkAndRetrieve(request).value)
+        lazy val result: Either[MpeError, ProtectionRecordDetails] = await(orchestrator.checkAndRetrieve(request).value)
 
         assertThrows[TimeoutException](result)
       }
