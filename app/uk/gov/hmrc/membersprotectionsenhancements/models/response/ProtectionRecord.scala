@@ -24,7 +24,8 @@ case class ProtectionRecord(protectionReference: Option[String],
                             protectedAmount: Option[Int],
                             lumpSumAmount: Option[Int],
                             lumpSumPercentage: Option[Int],
-                            enhancementFactor: Option[Double])
+                            enhancementFactor: Option[Double],
+                            pensionCreditLegislation: Option[String])
 
 object ProtectionRecord {
   implicit val format: OFormat[ProtectionRecord] = Json.format[ProtectionRecord]

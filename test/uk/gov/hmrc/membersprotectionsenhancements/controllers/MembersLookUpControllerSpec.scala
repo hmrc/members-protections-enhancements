@@ -117,7 +117,8 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
           protectedAmount = Some(1),
           lumpSumAmount = Some(1),
           lumpSumPercentage = Some(1),
-          enhancementFactor = Some(0.5)
+          enhancementFactor = Some(0.5),
+          pensionCreditLegislation = None
         )
       )
     )
@@ -138,12 +139,14 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
 
     val controller: MembersLookUpController = application.injector.instanceOf[MembersLookUpController]
 
-    def setupStubs(downstreamRequestBody: String,
-                   matchStatus: Int,
-                   matchResponse: String,
-                   retrieveStatus: Int,
-                   retrieveResponse: String,
-                   withRetrieveStub: Boolean): StubMapping = {
+    def setupStubs(
+      downstreamRequestBody: String,
+      matchStatus: Int,
+      matchResponse: String,
+      retrieveStatus: Int,
+      retrieveResponse: String,
+      withRetrieveStub: Boolean
+    ): StubMapping = {
       def stubMatch: StubMapping = stubPost(
         url = matchUrl,
         requestBody = downstreamRequestBody,
