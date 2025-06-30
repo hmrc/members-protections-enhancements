@@ -27,7 +27,8 @@ class ProtectionRecordSpec extends UnitBaseSpec {
     protectedAmount = Some(1),
     lumpSumAmount = Some(1),
     lumpSumPercentage = Some(1),
-    enhancementFactor = Some(0.5)
+    enhancementFactor = Some(0.5),
+    pensionCreditLegislation = None
   )
 
   val testJson: JsValue = Json.parse(

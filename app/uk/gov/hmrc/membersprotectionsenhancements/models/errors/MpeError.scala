@@ -18,7 +18,10 @@ package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
 import play.api.libs.json.{Json, OWrites}
 
-sealed case class MpeError(code: String, message: String, reasons: Option[Seq[String]] = None)
+sealed case class MpeError(code: String,
+                           message: String,
+                           reasons: Option[Seq[String]] = None,
+                           source: ErrorSource = Internal)
 
 object MpeError {
   implicit val writes: OWrites[MpeError] = Json.writes[MpeError]
@@ -46,8 +49,22 @@ object InternalError
       message = "An internal server error occurred"
     )
 
-object NotFoundError
+object NoMatchError
     extends MpeError(
-      code = "NOT_FOUND",
-      message = "Matching not found"
+      code = "NO_MATCH",
+      message = "Matching API returned NO MATCH result for supplied member details",
+      source = MatchPerson
+    )
+
+object EmptyDataError
+  extends MpeError(
+    code = "EMPTY_DATA",
+    message = "Retrieve API returned a successful response containing no supported protections or enhancements",
+    source = RetrieveMpe
+  )
+
+object UnexpectedStatusError
+    extends MpeError(
+      code = "UNEXPECTED_STATUS_ERROR",
+      message = "An unexpected status code was returned from downstream"
     )

@@ -27,16 +27,27 @@ import scala.concurrent.ExecutionContext
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpValidator @Inject() ()(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpValidator @Inject()(implicit val ec: ExecutionContext) extends Logging {
+  val classLoggingContext: String = "MembersLookUpValidator"
 
-  def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] =
+  def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] = {
+    val methodLoggingContext: String = "validate"
+    val fullLoggingContext = s"[$classLoggingContext][$methodLoggingContext]"
+
+    logger.info(s"$fullLoggingContext - Attempting to validate supplied request body")
+
     requestBody.validate[PensionSchemeMemberRequest] match {
-      case JsSuccess(value, _) => Right(value)
+      case JsSuccess(value, _) =>
+        logger.info(s"$fullLoggingContext - Request body validation completed successfully")
+        Right(value)
       case JsError(errors) =>
         val r = errors.map {
           case (_: JsPath, Seq(JsonValidationError(Seq(error: String)))) => error
           case _ => "Unknown error"
         }
+
+        logger.error(s"$fullLoggingContext - Request body validation failed with errors: $r")
         Left(MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq)))
     }
+  }
 }

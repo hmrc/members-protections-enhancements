@@ -16,22 +16,53 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
-import uk.gov.hmrc.membersprotectionsenhancements.connectors.NpsConnector
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, MpeError, NoMatchError}
+import cats.data.EitherT
+import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, NpsConnector}
 import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.ProtectionRecordDetails
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MATCH, ProtectionRecordDetails, `NO MATCH`}
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject() (nps: NpsConnector)(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpOrchestrator @Inject()(npsConnector: NpsConnector)
+                                         (implicit val ec: ExecutionContext) extends Logging {
+  val classLoggingContext: String = "MembersLookUpOrchestrator"
 
-  def checkAndRetrieve(request: PensionSchemeMemberRequest)(implicit
-    hc: HeaderCarrier
-  ): Future[Either[MpeError, ProtectionRecordDetails]] =
-    nps.retrieve(request.nino, request.psaCheckRef)
+  def checkAndRetrieve(request: PensionSchemeMemberRequest)
+                      (implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] = {
+    val methodLoggingContext: String = "checkAndRetrieve"
+    val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
+
+    logger.info(s"$fullLoggingContext - Received request to perform check and retrieve for supplied member details")
+
+    def doRetrieval(): EitherT[Future, MpeError, ProtectionRecordDetails] =
+      npsConnector.retrieveMpe(request.identifier, request.psaCheckRef).subflatMap {
+        case ProtectionRecordDetails(data) if data.isEmpty =>
+          logger.warn(s"$fullLoggingContext - ")
+          Left(EmptyDataError)
+        case details =>
+          logger.info(s"$fullLoggingContext - Successfully retrieved protections and enhancements data")
+          Right(details)
+      }
+
+    val result: ConnectorResult[ProtectionRecordDetails] = npsConnector.matchPerson(request).flatMap {
+      case MATCH =>
+        logger.info(s"$fullLoggingContext - Supplied member details successfully matched. Proceeding to retrieval")
+        doRetrieval()
+      case `NO MATCH` =>
+        logger.warn(s"$fullLoggingContext - No match was found for the supplied member details")
+        EitherT[Future, MpeError, ProtectionRecordDetails](
+          Future.successful(Left[MpeError, ProtectionRecordDetails](NoMatchError))
+        )
+    }
+
+    result.leftMap { err =>
+      logger.warn(s"$fullLoggingContext - An error occurred with code: ${err.code}, and source: ${err.source}")
+      err
+    }
+  }
 }

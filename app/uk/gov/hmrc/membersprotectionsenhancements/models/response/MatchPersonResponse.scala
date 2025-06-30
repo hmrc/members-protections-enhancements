@@ -16,17 +16,15 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.enums.Enums
+import play.api.libs.json._
 
-case class ProtectionRecord(protectionReference: Option[String],
-                            `type`: String,
-                            status: String,
-                            protectedAmount: Option[Int],
-                            lumpSumAmount: Option[Int],
-                            lumpSumPercentage: Option[Int],
-                            enhancementFactor: Option[Double],
-                            pensionCreditLegislation: Option[String])
+sealed abstract class MatchPersonResponse
 
-object ProtectionRecord {
-  implicit val format: OFormat[ProtectionRecord] = Json.format[ProtectionRecord]
+case object `MATCH` extends MatchPersonResponse
+case object `NO MATCH` extends MatchPersonResponse
+
+object MatchPersonResponse {
+  private val enumReads: Reads[MatchPersonResponse] = Enums.reads[MatchPersonResponse]
+  implicit val reads: Reads[MatchPersonResponse] = (__ \ "matchResult").read[MatchPersonResponse](enumReads)
 }
