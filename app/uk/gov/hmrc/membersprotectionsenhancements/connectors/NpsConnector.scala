@@ -34,11 +34,12 @@ import javax.inject.{Inject, Singleton}
 import java.net.URI
 
 @Singleton
-class NpsConnector @Inject()(val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
+class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
   protected val classLoggingContext: String = "NpsConnector"
 
-  def matchPerson(request: PensionSchemeMemberRequest)
-                 (implicit hc: HeaderCarrier, ec: ExecutionContext): ConnectorResult[MatchPersonResponse] = {
+  def matchPerson(
+    request: PensionSchemeMemberRequest
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): ConnectorResult[MatchPersonResponse] = {
     val methodLoggingContext: String = "matchPerson"
     val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
     val matchIndividualAccountUrl: String = config.matchUrl
@@ -68,8 +69,10 @@ class NpsConnector @Inject()(val config: AppConfig, val http: HttpClientV2) exte
     )
   }
 
-  def retrieveMpe(nino: String, psaCheckRef: String)
-                 (implicit hc: HeaderCarrier, ec: ExecutionContext): ConnectorResult[ProtectionRecordDetails] = {
+  def retrieveMpe(nino: String, psaCheckRef: String)(implicit
+    hc: HeaderCarrier,
+    ec: ExecutionContext
+  ): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "retrieve"
     val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 

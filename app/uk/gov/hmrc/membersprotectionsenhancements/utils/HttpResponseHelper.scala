@@ -128,8 +128,7 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
   }
 }
 
-class UnrecognisedHttpResponseException(method: String,
-                                        url: String,
-                                        response: HttpResponse) extends Exception(
-  s"$method to $url failed with status ${response.status}. Response body: '${response.body}'"
-)
+class UnrecognisedHttpResponseException(method: String, url: String, response: HttpResponse)
+    extends Exception(
+      s"$method to $url failed with status ${response.status}. Response body: '${response.body}'"
+    )
