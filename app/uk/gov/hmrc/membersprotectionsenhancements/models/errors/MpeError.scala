@@ -18,10 +18,12 @@ package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
 import play.api.libs.json.{Json, OWrites}
 
-sealed case class MpeError(code: String,
-                           message: String,
-                           reasons: Option[Seq[String]] = None,
-                           source: ErrorSource = Internal)
+sealed case class MpeError(
+  code: String,
+  message: String,
+  reasons: Option[Seq[String]] = None,
+  source: ErrorSource = Internal
+)
 
 object MpeError {
   implicit val writes: OWrites[MpeError] = Json.writes[MpeError]
@@ -57,11 +59,11 @@ object NoMatchError
     )
 
 object EmptyDataError
-  extends MpeError(
-    code = "EMPTY_DATA",
-    message = "Retrieve API returned a successful response containing no supported protections or enhancements",
-    source = RetrieveMpe
-  )
+    extends MpeError(
+      code = "EMPTY_DATA",
+      message = "Retrieve API returned a successful response containing no supported protections or enhancements",
+      source = RetrieveMpe
+    )
 
 object UnexpectedStatusError
     extends MpeError(

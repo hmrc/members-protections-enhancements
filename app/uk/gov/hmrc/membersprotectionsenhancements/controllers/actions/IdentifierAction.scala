@@ -64,8 +64,6 @@ class AuthenticatedIdentifierAction @Inject() (
           block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, request))
         case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
           block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, request))
-        case Some(_) ~ Some(_) ~ _ =>
-          Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
         case _ =>
           Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
       }
