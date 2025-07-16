@@ -21,13 +21,12 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSc
 import play.api.Logging
 import play.api.libs.json._
 
-import scala.collection.Seq
 import scala.concurrent.ExecutionContext
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpValidator @Inject()(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) extends Logging {
   val classLoggingContext: String = "MembersLookUpValidator"
 
   def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] = {
@@ -41,11 +40,7 @@ class MembersLookUpValidator @Inject()(implicit val ec: ExecutionContext) extend
         logger.info(s"$fullLoggingContext - Request body validation completed successfully")
         Right(value)
       case JsError(errors) =>
-        val r = errors.map {
-          case (_: JsPath, Seq(JsonValidationError(Seq(error: String)))) => error
-          case _ => "Unknown error"
-        }
-
+        val r = errors.map(t => t._2.foldLeft("")((x, y) => x + y.message))
         logger.error(s"$fullLoggingContext - Request body validation failed with errors: $r")
         Left(MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq)))
     }

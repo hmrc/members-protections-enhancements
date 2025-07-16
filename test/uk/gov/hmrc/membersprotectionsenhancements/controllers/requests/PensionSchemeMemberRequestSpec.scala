@@ -40,12 +40,27 @@ class PensionSchemeMemberRequestSpec extends UnitBaseSpec {
       json.as[PensionSchemeMemberRequest] mustBe model
     }
 
-    "return a error for invalid data" in {
+    "return a error for invalid or missing date" in {
       val invalidJson: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
           |    "lastName": "Vijay",
           |    "nino": "QQ 12 34 56 C",
+          |    "psaCheckRef":"PSA12345678A"
+          |}""".stripMargin)
+
+      intercept[JsResultException] {
+        invalidJson.as[PensionSchemeMemberRequest]
+      }
+    }
+
+    "return a error for invalid firstName" in {
+      val invalidJson: JsValue = Json.parse("""
+          |{
+          |    "firstName": "NarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNaren",
+          |    "lastName": "Vijay",
+          |    "dateOfBirth": "2024-12-31",
+          |    "nino": "AA123456C",
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 

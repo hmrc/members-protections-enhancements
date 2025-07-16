@@ -46,7 +46,47 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(json) mustBe Right(model)
     }
 
-    "return an error for invalid data" in {
+    "return an error for missing or invalid firstName and lastName" in {
+      val invalidJson: JsValue = Json.parse("""
+                                              |{
+                                              |    "firstName": "",
+                                              |    "lastName": "",
+                                              |    "dateOfBirth": "2024-12-31",
+                                              |    "nino": "AA123456C",
+                                              |    "psaCheckRef":"PSA12345678A"
+                                              |}""".stripMargin)
+
+      validator.validate(invalidJson) mustBe
+        Left(
+          MpeError(
+            "BAD_REQUEST",
+            "Invalid request data",
+            Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+          )
+        )
+    }
+
+    "return an error for too long firstName and lastName" in {
+      val invalidJson: JsValue = Json.parse("""
+                                              |{
+                                              |    "firstName": "NarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNarenNaren",
+                                              |    "lastName": "VijayVijayVijayVijayVijayVijayVijayVijayVijayVijayVijayVijayVijayVijayVijay",
+                                              |    "dateOfBirth": "2024-12-31",
+                                              |    "nino": "AA123456C",
+                                              |    "psaCheckRef":"PSA12345678A"
+                                              |}""".stripMargin)
+
+      validator.validate(invalidJson) mustBe
+        Left(
+          MpeError(
+            "BAD_REQUEST",
+            "Invalid request data",
+            Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+          )
+        )
+    }
+
+    "return an error for missing or invalid dateOfBirth" in {
       val invalidJson: JsValue = Json.parse("""
           |{
           |    "firstName": "Naren",
@@ -57,6 +97,62 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
       validator.validate(invalidJson) mustBe
         Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth"))))
+    }
+
+    "return an error for missing nino" in {
+      val invalidJson: JsValue = Json.parse("""
+                                              |{
+                                              |    "firstName": "Naren",
+                                              |    "lastName": "Vijay",
+                                              |    "dateOfBirth": "2024-12-31",
+                                              |    "nino": "",
+                                              |    "psaCheckRef":"PSA12345678A"
+                                              |}""".stripMargin)
+
+      validator.validate(invalidJson) mustBe
+        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino"))))
+    }
+
+    "return an error for invalid nino" in {
+      val invalidJson: JsValue = Json.parse("""
+                                              |{
+                                              |    "firstName": "Naren",
+                                              |    "lastName": "Vijay",
+                                              |    "dateOfBirth": "2024-12-31",
+                                              |    "nino": "QQ1 234 56C",
+                                              |    "psaCheckRef":"PSA12345678A"
+                                              |}""".stripMargin)
+
+      validator.validate(invalidJson) mustBe
+        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino"))))
+    }
+
+    "return an error for missing psaCheckRef" in {
+      val invalidJson: JsValue = Json.parse("""
+                                              |{
+                                              |    "firstName": "Naren",
+                                              |    "lastName": "Vijay",
+                                              |    "dateOfBirth": "2024-12-31",
+                                              |    "nino": "AA123456C",
+                                              |    "psaCheckRef":""
+                                              |}""".stripMargin)
+
+      validator.validate(invalidJson) mustBe
+        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef"))))
+    }
+
+    "return an error for invalid psaCheckRef" in {
+      val invalidJson: JsValue = Json.parse("""
+                                              |{
+                                              |    "firstName": "Naren",
+                                              |    "lastName": "Vijay",
+                                              |    "dateOfBirth": "2024-12-31",
+                                              |    "nino": "AA123456C",
+                                              |    "psaCheckRef":"PSP  1234 5678A"
+                                              |}""".stripMargin)
+
+      validator.validate(invalidJson) mustBe
+        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef"))))
     }
 
     "return multiple errors" in {
