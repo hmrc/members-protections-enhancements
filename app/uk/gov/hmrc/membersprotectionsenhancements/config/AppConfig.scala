@@ -32,6 +32,9 @@ class AppConfig @Inject() (configuration: Configuration) {
   lazy val matchUrl: String = npsBase + npsContext + s"/${loadConfig("urls.match")}"
   lazy val retrieveUrl: String = npsBase + npsContext + s"/${loadConfig("urls.retrieve")}"
 
-  lazy val matchPersonGovUkOriginatorId: String = loadConfig("govUkOriginatorId.matchPerson")
-  lazy val retrieveMpeGovUkOriginatorId: String = loadConfig("govUkOriginatorId.retrieveMpe")
+  lazy val npsClientId: String = loadConfig("nps-headers.clientId")
+  lazy val npsSecret: String = loadConfig("nps-headers.secret")
+
+  lazy val matchPersonGovUkOriginatorId: String = loadConfig("nps-headers.govUkOriginatorId")
+  lazy val retrieveMpeGovUkOriginatorId: String = loadConfig("nps-headers.govUkOriginatorId")
 }

@@ -32,12 +32,15 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpController @Inject()(cc: ControllerComponents,
-                                        identify: IdentifierAction,
-                                        getData: DataRetrievalAction,
-                                        orchestrator: MembersLookUpOrchestrator,
-                                        validator: MembersLookUpValidator)
-                                       (implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
+class MembersLookUpController @Inject() (
+  cc: ControllerComponents,
+  identify: IdentifierAction,
+  getData: DataRetrievalAction,
+  orchestrator: MembersLookUpOrchestrator,
+  validator: MembersLookUpValidator
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
   val classLoggingContext: String = "MembersLookUpController"
 
   def checkAndRetrieve: Action[JsValue] = identify.andThen(getData).async(parse.json) { request =>
@@ -49,6 +52,7 @@ class MembersLookUpController @Inject()(cc: ControllerComponents,
     )
 
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+    implicit val correlationId: String = request.headers.get("correlationId").getOrElse("No correlationId")
 
     val result =
       for {
@@ -61,7 +65,7 @@ class MembersLookUpController @Inject()(cc: ControllerComponents,
       }
 
     result.leftMap { error =>
-      logger.warn(s"$fullLoggingContext - Error response received: $error")
+      logger.warn(s"$fullLoggingContext - Error response received: $error with correlationId $correlationId")
       error.code match {
         case "BAD_REQUEST" => BadRequest(Json.toJson(error))
         case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(error))

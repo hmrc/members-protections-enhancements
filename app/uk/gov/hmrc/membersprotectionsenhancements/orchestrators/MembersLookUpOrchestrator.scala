@@ -22,22 +22,26 @@ import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, N
 import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MATCH, ProtectionRecordDetails, `NO MATCH`}
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{`NO MATCH`, MATCH, ProtectionRecordDetails}
 
 import scala.concurrent.{ExecutionContext, Future}
+
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject()(npsConnector: NpsConnector)
-                                         (implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit val ec: ExecutionContext)
+    extends Logging {
   val classLoggingContext: String = "MembersLookUpOrchestrator"
 
-  def checkAndRetrieve(request: PensionSchemeMemberRequest)
-                      (implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] = {
+  def checkAndRetrieve(
+    request: PensionSchemeMemberRequest
+  )(implicit hc: HeaderCarrier, correlationId: String): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "checkAndRetrieve"
     val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 
-    logger.info(s"$fullLoggingContext - Received request to perform check and retrieve for supplied member details")
+    logger.info(
+      s"$fullLoggingContext - Received request to perform check and retrieve for supplied member details  with correlationId $correlationId"
+    )
 
     def doRetrieval(): EitherT[Future, MpeError, ProtectionRecordDetails] =
       npsConnector.retrieveMpe(request.identifier, request.psaCheckRef).subflatMap {
@@ -45,23 +49,31 @@ class MembersLookUpOrchestrator @Inject()(npsConnector: NpsConnector)
           logger.warn(s"$fullLoggingContext - ")
           Left(EmptyDataError)
         case details =>
-          logger.info(s"$fullLoggingContext - Successfully retrieved protections and enhancements data")
+          logger.info(
+            s"$fullLoggingContext - Successfully retrieved protections and enhancements data with correlationId $correlationId"
+          )
           Right(details)
       }
 
     val result: ConnectorResult[ProtectionRecordDetails] = npsConnector.matchPerson(request).flatMap {
       case MATCH =>
-        logger.info(s"$fullLoggingContext - Supplied member details successfully matched. Proceeding to retrieval")
+        logger.info(
+          s"$fullLoggingContext - Supplied member details successfully matched. Proceeding to retrieval with correlationId $correlationId"
+        )
         doRetrieval()
       case `NO MATCH` =>
-        logger.warn(s"$fullLoggingContext - No match was found for the supplied member details")
+        logger.warn(
+          s"$fullLoggingContext - No match was found for the supplied member details with correlationId $correlationId"
+        )
         EitherT[Future, MpeError, ProtectionRecordDetails](
           Future.successful(Left[MpeError, ProtectionRecordDetails](NoMatchError))
         )
     }
 
     result.leftMap { err =>
-      logger.warn(s"$fullLoggingContext - An error occurred with code: ${err.code}, and source: ${err.source}")
+      logger.warn(
+        s"$fullLoggingContext - An error occurred with code: ${err.code}, and source: ${err.source} with correlationId $correlationId"
+      )
       err
     }
   }

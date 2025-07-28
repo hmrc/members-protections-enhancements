@@ -26,23 +26,29 @@ import uk.gov.hmrc.http._
 trait HttpResponseHelper extends HttpErrorFunctions with Logging {
   protected val classLoggingContext: String
 
+  private def retrieveCorrelationId(response: HttpResponse): String =
+    response.header("correlationId").getOrElse("No correlationId")
+
   implicit def httpReads[Resp: Reads]: HttpReads[Either[MpeError, Resp]] =
     (method: String, url: String, response: HttpResponse) => {
       val methodLoggingContext: String = "[httpReads]"
       val logContextString = classLoggingContext + methodLoggingContext
 
       logger.info(
-        s"$logContextString - Attempting to read HTTP response for request with method: $method, and url: $url"
+        s"$logContextString - Attempting to read HTTP response for request with method: $method, and url: $url" +
+          s" with correlationId ${retrieveCorrelationId(response)}"
       )
 
       if (response.status == OK) {
         logger.info(
-          s"$logContextString - HTTP response contained success status. Attempting to parse response body"
+          s"$logContextString - HTTP response contained success status. Attempting to parse response body" +
+            s" with correlationId ${retrieveCorrelationId(response)}"
         )
         jsonValidation[Resp](response.body)
       } else {
         logger.warn(
-          s"$logContextString - HTTP response contained error status: ${response.status}. Attempting to handle error"
+          s"$logContextString - HTTP response contained error status: ${response.status}. Attempting to handle error" +
+            s" with correlationId ${retrieveCorrelationId(response)}"
         )
         Left(
           handleErrorResponse(httpMethod = method, url = url, response = response)
@@ -96,31 +102,32 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
     response.status match {
       case BAD_REQUEST =>
         val message = badRequestMessage(httpMethod, url, response.body)
-        logger.warn(s"$logContextString[BAD_REQUEST] - $message")
+        logger.warn(s"$logContextString[BAD_REQUEST] - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("BAD_REQUEST", message)
       case FORBIDDEN =>
         val message = upstreamResponseMessage(httpMethod, url, FORBIDDEN, response.body)
-        logger.warn(s"$logContextString - $message")
+        logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("FORBIDDEN", message)
       case NOT_FOUND if httpMethod == "GET" =>
         val message = notFoundMessage(httpMethod, url, response.body)
-        logger.warn(s"$logContextString[NOT_FOUND] - $message")
+        logger.warn(s"$logContextString[NOT_FOUND] - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("NOT_FOUND", message)
       case UNPROCESSABLE_ENTITY if httpMethod == "GET" =>
         val message = upstreamResponseMessage(httpMethod, url, UNPROCESSABLE_ENTITY, response.body)
-        logger.warn(s"$logContextString - $message")
+        logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("UNPROCESSABLE_ENTITY", message)
       case INTERNAL_SERVER_ERROR =>
         val message = upstreamResponseMessage(httpMethod, url, INTERNAL_SERVER_ERROR, response.body)
-        logger.warn(s"$logContextString - $message")
+        logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("INTERNAL_ERROR", message)
       case SERVICE_UNAVAILABLE =>
         val message = upstreamResponseMessage(httpMethod, url, SERVICE_UNAVAILABLE, response.body)
-        logger.warn(s"$logContextString - $message")
+        logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("SERVICE_UNAVAILABLE", message)
       case status =>
         logger.error(
-          message = s"$logContextString - Received an unexpected error status: $status",
+          message =
+            s"$logContextString - Received an unexpected error status: $status with correlationId ${retrieveCorrelationId(response)}",
           error = new UnrecognisedHttpResponseException(httpMethod, url, response)
         )
         UnexpectedStatusError
@@ -128,8 +135,7 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
   }
 }
 
-class UnrecognisedHttpResponseException(method: String,
-                                        url: String,
-                                        response: HttpResponse) extends Exception(
-  s"$method to $url failed with status ${response.status}. Response body: '${response.body}'"
-)
+class UnrecognisedHttpResponseException(method: String, url: String, response: HttpResponse)
+    extends Exception(
+      s"$method to $url failed with status ${response.status}. Response body: '${response.body}'"
+    )

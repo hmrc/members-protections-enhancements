@@ -21,32 +21,32 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSc
 import play.api.Logging
 import play.api.libs.json._
 
-import scala.collection.Seq
 import scala.concurrent.ExecutionContext
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpValidator @Inject()(implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext, correlationId: String) extends Logging {
   val classLoggingContext: String = "MembersLookUpValidator"
 
   def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] = {
     val methodLoggingContext: String = "validate"
     val fullLoggingContext = s"[$classLoggingContext][$methodLoggingContext]"
 
-    logger.info(s"$fullLoggingContext - Attempting to validate supplied request body")
+    logger.info(s"$fullLoggingContext - Attempting to validate supplied request body with correlationId $correlationId")
 
     requestBody.validate[PensionSchemeMemberRequest] match {
       case JsSuccess(value, _) =>
-        logger.info(s"$fullLoggingContext - Request body validation completed successfully")
+        logger.info(
+          s"$fullLoggingContext - Request body validation completed successfully with correlationId $correlationId"
+        )
         Right(value)
       case JsError(errors) =>
-        val r = errors.map {
-          case (_: JsPath, Seq(JsonValidationError(Seq(error: String)))) => error
-          case _ => "Unknown error"
-        }
+        val r = errors.map(t => t._2.foldLeft("")((x, y) => x + y.message))
 
-        logger.error(s"$fullLoggingContext - Request body validation failed with errors: $r")
+        logger.error(
+          s"$fullLoggingContext - Request body validation with correlationId $correlationId failed with errors: $r"
+        )
         Left(MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq)))
     }
   }
