@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements
 
-import cats.data.EitherT
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorWrapper
+import cats.data.EitherT
 
 import scala.concurrent.Future
 

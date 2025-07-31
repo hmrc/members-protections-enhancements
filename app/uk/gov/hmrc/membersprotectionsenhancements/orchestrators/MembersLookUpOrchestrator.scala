@@ -22,14 +22,10 @@ import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, N
 import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{
-  `NO MATCH`,
-  MATCH,
-  ProtectionRecordDetails,
-  ResponseWrapper
-}
+import uk.gov.hmrc.membersprotectionsenhancements.models.response._
 
 import scala.concurrent.{ExecutionContext, Future}
+
 import javax.inject.{Inject, Singleton}
 
 @Singleton

@@ -31,9 +31,10 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.response.{
   ResponseWrapper
 }
 import uk.gov.hmrc.membersprotectionsenhancements.utils.HttpResponseHelper
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MatchPerson, MpeError, RetrieveMpe}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MatchPerson, RetrieveMpe}
 
 import scala.concurrent.ExecutionContext
+
 import java.util.Base64
 import javax.inject.{Inject, Singleton}
 import java.net.URI
@@ -47,7 +48,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     val secret = config.npsSecret
 
     val encoded = Base64.getEncoder.encodeToString(s"$clientId:$secret".getBytes("UTF-8"))
-    s"Basic $encoded"
+    s"Bearer $encoded"
   }
 
   def matchPerson(
@@ -77,13 +78,13 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
       err => {
         logger.warn(
           s"$fullContext - Request to check for a matching individual" +
-            s" with correlationId $correlationId failed with error code: ${err.error.code}"
+            s" with correlationId ${err.correlationId} failed with error code: ${err.error.code}"
         )
         err.copy(error = err.error.copy(source = MatchPerson))
       },
       resp => {
         logger.info(
-          s"$fullContext - Request to check for a matching individual completed successfully with correlationId $correlationId"
+          s"$fullContext - Request to check for a matching individual completed successfully with correlationId ${resp.correlationId}"
         )
         resp
       }

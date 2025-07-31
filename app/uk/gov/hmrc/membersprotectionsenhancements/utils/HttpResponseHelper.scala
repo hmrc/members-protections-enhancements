@@ -16,18 +16,13 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
-  ErrorWrapper,
-  InternalError,
-  MpeError,
-  UnexpectedStatusError
-}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.core.JsonParseException
 import play.api.libs.json._
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
 import play.api.http.Status._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
 
 trait HttpResponseHelper extends HttpErrorFunctions with Logging {
   protected val classLoggingContext: String
