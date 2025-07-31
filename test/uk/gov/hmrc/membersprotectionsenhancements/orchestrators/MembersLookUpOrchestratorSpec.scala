@@ -40,6 +40,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     val orchestrator: MembersLookUpOrchestrator = new MembersLookUpOrchestrator(npsConnector)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val correlationId: String = "X-123"
 
     val request: PensionSchemeMemberRequest = PensionSchemeMemberRequest(
       firstName = "Paul",
@@ -68,7 +69,8 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
           request = ArgumentMatchers.eq(request)
         )(
           hc = ArgumentMatchers.any(),
-          ec = ArgumentMatchers.any()
+          ec = ArgumentMatchers.any(),
+          correlationId = ArgumentMatchers.any()
         )
       ).thenReturn(EitherT(res))
 
@@ -81,7 +83,8 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
           psaCheckRef = ArgumentMatchers.eq(request.psaCheckRef)
         )(
           hc = ArgumentMatchers.any(),
-          ec = ArgumentMatchers.any()
+          ec = ArgumentMatchers.any(),
+          correlationId = ArgumentMatchers.any()
         )
       ).thenReturn(EitherT(res))
   }

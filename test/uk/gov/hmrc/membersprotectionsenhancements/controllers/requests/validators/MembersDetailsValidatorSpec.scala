@@ -27,6 +27,8 @@ import java.time.LocalDate
 
 class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
+  implicit val correlationId: String = "X-123"
+
   val validator = new MembersLookUpValidator()
 
   val json: JsValue = Json.parse("""

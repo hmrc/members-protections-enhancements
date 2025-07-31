@@ -52,6 +52,7 @@ class MembersLookUpController @Inject() (
     )
 
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+    implicit val correlationId: String = request.headers.get("correlationId").getOrElse("No correlationId")
 
     val result =
       for {
@@ -64,7 +65,7 @@ class MembersLookUpController @Inject() (
       }
 
     result.leftMap { error =>
-      logger.warn(s"$fullLoggingContext - Error response received: $error")
+      logger.warn(s"$fullLoggingContext - Error response received: $error with correlationId $correlationId")
       error.code match {
         case "BAD_REQUEST" => BadRequest(Json.toJson(error))
         case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(error))

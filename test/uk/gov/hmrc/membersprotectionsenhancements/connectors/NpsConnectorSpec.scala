@@ -47,6 +47,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
     val connector: NpsConnector = application.injector.instanceOf[NpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val correlationId: String = "X-123"
   }
 
   "NpsConnector" -> {
