@@ -45,7 +45,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     val secret = config.npsSecret
 
     val encoded = Base64.getEncoder.encodeToString(s"$clientId:$secret".getBytes("UTF-8"))
-    s"Basic $encoded"
+    s"Bearer $encoded"
   }
 
   def matchPerson(
