@@ -108,7 +108,7 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
         val message = upstreamResponseMessage(httpMethod, url, FORBIDDEN, response.body)
         logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("FORBIDDEN", message)
-      case NOT_FOUND if httpMethod == "GET" =>
+      case NOT_FOUND =>
         val message = notFoundMessage(httpMethod, url, response.body)
         logger.warn(s"$logContextString[NOT_FOUND] - $message with correlationId ${retrieveCorrelationId(response)}")
         MpeError("NOT_FOUND", message)
