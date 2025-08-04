@@ -17,9 +17,10 @@
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
-import play.api.http.HeaderNames.AUTHORIZATION
+import play.api.http.ContentTypes
+import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
 import cats.data.EitherT
-import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
@@ -48,7 +49,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     val secret = config.npsSecret
 
     val encoded = Base64.getEncoder.encodeToString(s"$clientId:$secret".getBytes("UTF-8"))
-    s"Bearer $encoded"
+    s"Basic $encoded"
   }
 
   def matchPerson(
@@ -71,7 +72,9 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .setHeader(
           (correlationIdKey, correlationId),
           (govUkOriginatorIdKey, config.matchPersonGovUkOriginatorId),
-          (AUTHORIZATION, authorization())
+          (AUTHORIZATION, authorization()),
+          (CONTENT_TYPE, ContentTypes.JSON),
+          (ENVIRONMENT, config.npsEnv)
         )
         .execute[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
     ).bimap(
@@ -111,7 +114,8 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .setHeader(
           (correlationIdKey, correlationId),
           (govUkOriginatorIdKey, config.retrieveMpeGovUkOriginatorId),
-          (AUTHORIZATION, authorization())
+          (AUTHORIZATION, authorization()),
+          (ENVIRONMENT, config.npsEnv)
         )
         .execute[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
     ).bimap(

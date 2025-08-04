@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.utils
+package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-object HeaderKey {
-  val correlationIdKey: String = "correlationId"
-  val govUkOriginatorIdKey = "gov-uk-originator-id"
-  val ENVIRONMENT: String = "Environment"
+import base.UnitBaseSpec
+
+class ResponseWrapperSpec extends UnitBaseSpec {
+  "map" - {
+    "on responseData" in {
+      val responseWrapper = ResponseWrapper[String]("my id", "beans")
+      responseWrapper.map(_.toUpperCase) mustBe ResponseWrapper[String]("my id", "BEANS")
+    }
+  }
 }
