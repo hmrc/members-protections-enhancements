@@ -26,9 +26,13 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ProtectionRecordDetails}
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{
+  MatchPersonResponse,
+  ProtectionRecordDetails,
+  ResponseWrapper
+}
 import uk.gov.hmrc.membersprotectionsenhancements.utils.HttpResponseHelper
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{MatchPerson, MpeError, RetrieveMpe}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MatchPerson, RetrieveMpe}
 
 import scala.concurrent.ExecutionContext
 
@@ -50,7 +54,11 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
 
   def matchPerson(
     request: PensionSchemeMemberRequest
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext, correlationId: String): ConnectorResult[MatchPersonResponse] = {
+  )(implicit
+    hc: HeaderCarrier,
+    ec: ExecutionContext,
+    correlationId: String
+  ): ConnectorResult[MatchPersonResponse] = {
     val methodLoggingContext: String = "matchPerson"
     val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
     val matchIndividualAccountUrl: String = config.matchUrl
@@ -68,17 +76,18 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
           (CONTENT_TYPE, ContentTypes.JSON),
           (ENVIRONMENT, config.npsEnv)
         )
-        .execute[Either[MpeError, MatchPersonResponse]]
+        .execute[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
     ).bimap(
       err => {
         logger.warn(
-          s"$fullContext - Request to check for a matching individual with correlationId $correlationId failed with error code: ${err.code}"
+          s"$fullContext - Request to check for a matching individual" +
+            s" with correlationId ${err.correlationId} failed with error: ${err.error}"
         )
-        err.copy(source = MatchPerson)
+        err.copy(error = err.error.copy(source = MatchPerson))
       },
       resp => {
         logger.info(
-          s"$fullContext - Request to check for a matching individual completed successfully with correlationId $correlationId"
+          s"$fullContext - Request to check for a matching individual completed successfully with correlationId ${resp.correlationId}"
         )
         resp
       }
@@ -108,17 +117,18 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
           (AUTHORIZATION, authorization()),
           (ENVIRONMENT, config.npsEnv)
         )
-        .execute[Either[MpeError, ProtectionRecordDetails]]
+        .execute[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
     ).bimap(
       err => {
         logger.warn(
-          s"$fullContext - Request to retrieve protections and enhancements with correlationId $correlationId failed with error code: ${err.code}"
+          s"$fullContext - Request to retrieve protections and enhancements" +
+            s" with correlationId ${err.correlationId} failed with error: ${err.error}"
         )
-        err.copy(source = RetrieveMpe)
+        err.copy(error = err.error.copy(source = RetrieveMpe))
       },
       resp => {
         logger.info(
-          s"$fullContext - Request to retrieve protections and enhancements completed successfully with correlationId $correlationId"
+          s"$fullContext - Request to retrieve protections and enhancements completed successfully with correlationId ${resp.correlationId}"
         )
         resp
       }

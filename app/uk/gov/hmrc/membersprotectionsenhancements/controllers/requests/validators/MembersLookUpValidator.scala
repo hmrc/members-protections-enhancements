@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validators
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
 import play.api.Logging
 import play.api.libs.json._
@@ -29,7 +29,7 @@ import javax.inject.{Inject, Singleton}
 class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext, correlationId: String) extends Logging {
   val classLoggingContext: String = "MembersLookUpValidator"
 
-  def validate(requestBody: JsValue): Either[MpeError, PensionSchemeMemberRequest] = {
+  def validate(requestBody: JsValue): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
     val methodLoggingContext: String = "validate"
     val fullLoggingContext = s"[$classLoggingContext][$methodLoggingContext]"
 
@@ -47,7 +47,7 @@ class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext, corre
         logger.error(
           s"$fullLoggingContext - Request body validation with correlationId $correlationId failed with errors: $r"
         )
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq)))
+        Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq))))
     }
   }
 }

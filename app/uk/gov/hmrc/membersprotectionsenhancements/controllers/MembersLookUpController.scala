@@ -59,19 +59,22 @@ class MembersLookUpController @Inject() (
         validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body))
         response <- orchestrator.checkAndRetrieve(validatedRequest)
       } yield {
-        logger.info(s"$fullLoggingContext - Success response received")
+        logger.info(s"$fullLoggingContext - Success response received with correlationId ${response.correlationId}")
 
-        Ok(Json.toJson(response))
+        Ok(Json.toJson(response.responseData)).withHeaders("correlationId" -> response.correlationId)
       }
 
-    result.leftMap { error =>
-      logger.warn(s"$fullLoggingContext - Error response received: $error with correlationId $correlationId")
-      error.code match {
-        case "BAD_REQUEST" => BadRequest(Json.toJson(error))
-        case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(error))
-        case "FORBIDDEN" => Forbidden(Json.toJson(error))
-        case _ => InternalServerError(Json.toJson(error))
+    result.leftMap { errorWrapper =>
+      logger.warn(
+        s"$fullLoggingContext - Error response received: $errorWrapper with correlationId ${errorWrapper.correlationId}"
+      )
+      val errorResponse = errorWrapper.error.code match {
+        case "BAD_REQUEST" => BadRequest(Json.toJson(errorWrapper.error))
+        case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(errorWrapper.error))
+        case "FORBIDDEN" => Forbidden(Json.toJson(errorWrapper.error))
+        case _ => InternalServerError(Json.toJson(errorWrapper.error))
       }
+      errorResponse.withHeaders("correlationId" -> errorWrapper.correlationId)
     }.merge
   }
 }

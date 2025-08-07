@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validators
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.MpeError
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
 import base.UnitBaseSpec
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
@@ -60,10 +60,13 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
       validator.validate(invalidJson) mustBe
         Left(
-          MpeError(
-            "BAD_REQUEST",
-            "Invalid request data",
-            Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+          ErrorWrapper(
+            correlationId,
+            MpeError(
+              "BAD_REQUEST",
+              "Invalid request data",
+              Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+            )
           )
         )
     }
@@ -80,10 +83,13 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
       validator.validate(invalidJson) mustBe
         Left(
-          MpeError(
-            "BAD_REQUEST",
-            "Invalid request data",
-            Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+          ErrorWrapper(
+            correlationId,
+            MpeError(
+              "BAD_REQUEST",
+              "Invalid request data",
+              Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+            )
           )
         )
     }
@@ -98,7 +104,12 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
           |}""".stripMargin)
 
       validator.validate(invalidJson) mustBe
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth"))))
+        Left(
+          ErrorWrapper(
+            correlationId,
+            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth")))
+          )
+        )
     }
 
     "return an error for missing nino" in {
@@ -112,7 +123,12 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |}""".stripMargin)
 
       validator.validate(invalidJson) mustBe
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino"))))
+        Left(
+          ErrorWrapper(
+            correlationId,
+            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino")))
+          )
+        )
     }
 
     "return an error for invalid nino" in {
@@ -126,7 +142,12 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |}""".stripMargin)
 
       validator.validate(invalidJson) mustBe
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino"))))
+        Left(
+          ErrorWrapper(
+            correlationId,
+            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino")))
+          )
+        )
     }
 
     "return an error for missing psaCheckRef" in {
@@ -140,7 +161,12 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |}""".stripMargin)
 
       validator.validate(invalidJson) mustBe
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef"))))
+        Left(
+          ErrorWrapper(
+            correlationId,
+            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef")))
+          )
+        )
     }
 
     "return an error for invalid psaCheckRef" in {
@@ -154,7 +180,12 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |}""".stripMargin)
 
       validator.validate(invalidJson) mustBe
-        Left(MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef"))))
+        Left(
+          ErrorWrapper(
+            correlationId,
+            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef")))
+          )
+        )
     }
 
     "return multiple errors" in {
@@ -169,10 +200,13 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
       validator.validate(invalidJson) mustBe
         Left(
-          MpeError(
-            "BAD_REQUEST",
-            "Invalid request data",
-            Some(List("Missing or invalid dateOfBirth", "Missing or invalid nino"))
+          ErrorWrapper(
+            correlationId,
+            MpeError(
+              "BAD_REQUEST",
+              "Invalid request data",
+              Some(List("Missing or invalid dateOfBirth", "Missing or invalid nino"))
+            )
           )
         )
     }
