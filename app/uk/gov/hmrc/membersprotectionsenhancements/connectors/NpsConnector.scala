@@ -58,7 +58,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     hc: HeaderCarrier,
     ec: ExecutionContext,
     correlationId: String
-  ): ConnectorResult[ResponseWrapper[MatchPersonResponse]] = {
+  ): ConnectorResult[MatchPersonResponse] = {
     val methodLoggingContext: String = "matchPerson"
     val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
     val matchIndividualAccountUrl: String = config.matchUrl
@@ -81,7 +81,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
       err => {
         logger.warn(
           s"$fullContext - Request to check for a matching individual" +
-            s" with correlationId ${err.correlationId} failed with error code: ${err.error.code}"
+            s" with correlationId ${err.correlationId} failed with error: ${err.error}"
         )
         err.copy(error = err.error.copy(source = MatchPerson))
       },
@@ -98,7 +98,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     hc: HeaderCarrier,
     ec: ExecutionContext,
     correlationId: String
-  ): ConnectorResult[ResponseWrapper[ProtectionRecordDetails]] = {
+  ): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "retrieve"
     val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 
@@ -122,7 +122,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
       err => {
         logger.warn(
           s"$fullContext - Request to retrieve protections and enhancements" +
-            s" with correlationId ${err.correlationId} failed with error code: ${err.error.code}"
+            s" with correlationId ${err.correlationId} failed with error: ${err.error}"
         )
         err.copy(error = err.error.copy(source = RetrieveMpe))
       },

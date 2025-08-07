@@ -35,7 +35,7 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit 
 
   def checkAndRetrieve(
     request: PensionSchemeMemberRequest
-  )(implicit hc: HeaderCarrier, correlationId: String): ConnectorResult[ResponseWrapper[ProtectionRecordDetails]] = {
+  )(implicit hc: HeaderCarrier, correlationId: String): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "checkAndRetrieve"
     val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 
@@ -43,7 +43,7 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit 
       s"$fullLoggingContext - Received request to perform check and retrieve for supplied member details  with correlationId $correlationId"
     )
 
-    def doRetrieval(): EitherT[Future, ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+    def doRetrieval(): ConnectorResult[ProtectionRecordDetails] =
       npsConnector.retrieveMpe(request.identifier, request.psaCheckRef).subflatMap {
         case ResponseWrapper(id, ProtectionRecordDetails(data)) if data.isEmpty =>
           logger.warn(s"$fullLoggingContext - No data found with correlationId $id")
@@ -55,7 +55,7 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit 
           Right(details)
       }
 
-    val result: ConnectorResult[ResponseWrapper[ProtectionRecordDetails]] = npsConnector.matchPerson(request).flatMap {
+    val result: ConnectorResult[ProtectionRecordDetails] = npsConnector.matchPerson(request).flatMap {
       case ResponseWrapper(id, MATCH) =>
         logger.info(
           s"$fullLoggingContext - Supplied member details successfully matched. Proceeding to retrieval with correlationId $id"

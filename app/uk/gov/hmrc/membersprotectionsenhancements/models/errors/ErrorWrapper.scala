@@ -16,10 +16,4 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
-import play.api.libs.json.{Json, Writes}
-
 case class ErrorWrapper(correlationId: String, error: MpeError)
-
-object ErrorWrapper {
-  implicit val writes: Writes[ErrorWrapper] = Json.writes[ErrorWrapper]
-}

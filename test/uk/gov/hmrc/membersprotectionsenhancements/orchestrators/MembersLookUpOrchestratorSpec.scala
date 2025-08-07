@@ -63,7 +63,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
 
     def matchPersonMock(
       res: Future[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
-    ): OngoingStubbing[ConnectorResult[ResponseWrapper[MatchPersonResponse]]] =
+    ): OngoingStubbing[ConnectorResult[MatchPersonResponse]] =
       when(
         npsConnector.matchPerson(
           request = ArgumentMatchers.eq(request)
@@ -76,7 +76,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
 
     def retrieveMpeMock(
       res: Future[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
-    ): OngoingStubbing[ConnectorResult[ResponseWrapper[ProtectionRecordDetails]]] =
+    ): OngoingStubbing[ConnectorResult[ProtectionRecordDetails]] =
       when(
         npsConnector.retrieveMpe(
           nino = ArgumentMatchers.eq(request.identifier),

@@ -18,9 +18,10 @@ package uk.gov.hmrc.membersprotectionsenhancements
 
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorWrapper
 import cats.data.EitherT
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
 
 import scala.concurrent.Future
 
 package object connectors {
-  type ConnectorResult[Resp] = EitherT[Future, ErrorWrapper, Resp]
+  type ConnectorResult[Resp] = EitherT[Future, ErrorWrapper, ResponseWrapper[Resp]]
 }

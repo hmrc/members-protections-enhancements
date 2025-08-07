@@ -53,6 +53,15 @@ class ProtectionRecordDetailsSpec extends UnitBaseSpec {
     """.stripMargin
   )
 
+  val emptyJson: JsValue = Json.parse(
+    """
+      |{
+      | "protectionRecords": [
+      | ]
+      |}
+    """.stripMargin
+  )
+
   "writes" -> {
     "should return the expected JSON" in {
       Json.toJson(testModel) mustBe testJson
@@ -68,6 +77,12 @@ class ProtectionRecordDetailsSpec extends UnitBaseSpec {
       val result = testJson.validate[ProtectionRecordDetails]
       result mustBe a[JsSuccess[_]]
       result.get mustBe testModel
+    }
+
+    "return a JsSuccess when reading an empty ProtectionRecordDetails JSON" in {
+      val result = emptyJson.validate[ProtectionRecordDetails]
+      result mustBe a[JsSuccess[_]]
+      result.get mustBe ProtectionRecordDetails(Seq.empty)
     }
   }
 }
