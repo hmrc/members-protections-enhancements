@@ -122,8 +122,8 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
         ErrorWrapper(correlationId, MpeError("NOT_FOUND", message))
       case UNPROCESSABLE_ENTITY if httpMethod == "GET" =>
         val message = upstreamResponseMessage(httpMethod, url, UNPROCESSABLE_ENTITY, response.body)
-        logger.warn(s"$logContextString - $message with correlationId $correlationId")
-        ErrorWrapper(correlationId, MpeError("UNPROCESSABLE_ENTITY", message))
+        logger.warn(s"$logContextString - $message with correlationId $correlationId converting to NOT_FOUND status")
+        ErrorWrapper(correlationId, MpeError("NOT_FOUND", message))
       case INTERNAL_SERVER_ERROR =>
         val message = upstreamResponseMessage(httpMethod, url, INTERNAL_SERVER_ERROR, response.body)
         logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
