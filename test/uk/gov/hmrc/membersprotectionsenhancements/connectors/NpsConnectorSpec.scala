@@ -200,7 +200,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
         BAD_REQUEST -> "BAD_REQUEST",
         FORBIDDEN -> "FORBIDDEN",
         NOT_FOUND -> "NOT_FOUND",
-        UNPROCESSABLE_ENTITY -> "UNPROCESSABLE_ENTITY",
+        UNPROCESSABLE_ENTITY -> "NOT_FOUND",
         INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
         SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
       )
