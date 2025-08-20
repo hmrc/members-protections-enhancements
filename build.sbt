@@ -1,5 +1,4 @@
 import uk.gov.hmrc.DefaultBuildSettings
-import uk.gov.hmrc.DefaultBuildSettings.defaultSettings
 
 val appName = "members-protections-enhancements"
 
@@ -28,7 +27,7 @@ lazy val microservice = Project(appName, file("."))
     "-Wconf:msg=Flag.*repeatedly:s",
     "-Wconf:src=routes/.*:s")
   )
-  .settings(CodeCoverageSettings.settings: _*)
+  .settings(CodeCoverageSettings.settings *)
 
 lazy val it = project
   .in(file("it"))

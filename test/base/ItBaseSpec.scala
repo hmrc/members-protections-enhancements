@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import org.scalatest.concurrent.ScalaFutures
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.FakePsaIdentifierAction
+import play.api.mvc.BodyParsers
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.StringValuePattern
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -27,8 +28,6 @@ import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import org.scalatest.wordspec.AnyWordSpec
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.matchers.must.Matchers
-import play.api.mvc.BodyParsers
-import com.softwaremill.diffx.scalatest.DiffShouldMatcher
 import play.api.Application
 import org.scalatest.time.{Millis, Span}
 
@@ -39,7 +38,6 @@ abstract class ItBaseSpec
     extends AnyWordSpec
     with WireMockSupport
     with HttpClientV2Support
-    with DiffShouldMatcher
     with ScalaFutures
     with Matchers
     with GuiceOneServerPerSuite {
