@@ -18,4 +18,5 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
 import play.api.mvc.{Request, WrappedRequest}
 
-case class DataRequest[A](request: Request[A], userDetails: UserDetails) extends WrappedRequest[A](request)
+case class RequestWithCorrelationId[A](request: Request[A], correlationId: CorrelationId)
+    extends WrappedRequest[A](request)
