@@ -68,8 +68,7 @@ trait UnitBaseSpec
   protected def applicationBuilder(): GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .overrides(
-        bind[IdentifierAction].toInstance(fakePsaIdentifierAction),
-        bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction)
+        bind[IdentifierAction].toInstance(fakePsaIdentifierAction)
       )
 
   def runningApplication(block: Application => Unit): Unit =

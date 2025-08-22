@@ -17,12 +17,13 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 
 import play.api.test.{FakeRequest, StubPlayBodyParsersFactory}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InvalidBearerTokenError, UnauthorisedError}
 import play.api.mvc.{Action, AnyContent, BodyParsers}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserDetails
 import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
 import play.api.mvc.Results.Ok
+import uk.gov.hmrc.membersprotectionsenhancements.utils.IdGenerator
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InvalidBearerTokenError, UnauthorisedError}
 import play.api.test.Helpers._
 import org.mockito.Mockito.when
 import base.UnitBaseSpec
@@ -38,25 +39,24 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.Identifie
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthenticatedIdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory {
+class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory {
+  def authAction = new IdentifierActionImpl(mockAuthConnector, new IdGenerator, bodyParsers)(ExecutionContext.global)
 
-  def authAction(appConfig: AppConfig) =
-    new AuthenticatedIdentifierAction(mockAuthConnector, appConfig, bodyParsers)(ExecutionContext.global)
-
-  class Handler(appConfig: AppConfig) {
-    def run: Action[AnyContent] = authAction(appConfig) { request =>
+  class Handler {
+    def run: Action[AnyContent] = authAction { request =>
       request match {
-        case AdministratorRequest(UserDetails(psrUserType, psrUserId, userId, affinityGroup), _) =>
+        case AdministratorRequest(_, correlationid, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
           Ok(
             Json.obj(
               "psrUserType" -> psrUserType,
               "userId" -> userId,
               "psaId" -> psrUserId,
-              "affinityGroup" -> affinityGroup
+              "affinityGroup" -> affinityGroup,
+              "correlationId" -> correlationid.value
             )
           )
 
-        case PractitionerRequest(UserDetails(psrUserType, psrUserId, userId, affinityGroup), _) =>
+        case PractitionerRequest(_, _, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
           Ok(
             Json.obj(
               "psrUserType" -> psrUserType,
@@ -71,7 +71,7 @@ class AuthenticatedIdentifierActionSpec extends UnitBaseSpec with StubPlayBodyPa
 
   def appConfig(implicit app: Application): AppConfig = injected[AppConfig]
 
-  def handler(implicit app: Application): Handler = new Handler(appConfig)
+  def handler(implicit app: Application): Handler = new Handler()
 
   def authResult(
     affinityGroup: Option[AffinityGroup],

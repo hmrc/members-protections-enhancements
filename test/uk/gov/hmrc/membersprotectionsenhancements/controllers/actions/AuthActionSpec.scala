@@ -17,6 +17,7 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 
 import play.api.test.FakeRequest
+import uk.gov.hmrc.membersprotectionsenhancements.utils.IdGenerator
 import play.api.test.Helpers._
 import play.api.mvc._
 import com.google.inject.Inject
@@ -46,11 +47,10 @@ class AuthActionUnitSpec extends UnitBaseSpec {
 
         running(application) {
           val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
 
-          val authAction = new AuthenticatedIdentifierAction(
+          val authAction = new IdentifierActionImpl(
             new FakeFailingAuthConnector(new MissingBearerToken),
-            appConfig,
+            new IdGenerator,
             bodyParsers
           )
           val controller = new Harness(authAction)
@@ -67,11 +67,11 @@ class AuthActionUnitSpec extends UnitBaseSpec {
 
         running(application) {
           val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
+          application.injector.instanceOf[AppConfig]
 
-          val authAction = new AuthenticatedIdentifierAction(
+          val authAction = new IdentifierActionImpl(
             new FakeFailingAuthConnector(new BearerTokenExpired),
-            appConfig,
+            new IdGenerator,
             bodyParsers
           )
           val controller = new Harness(authAction)
@@ -87,11 +87,11 @@ class AuthActionUnitSpec extends UnitBaseSpec {
 
         running(application) {
           val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
+          application.injector.instanceOf[AppConfig]
 
-          val authAction = new AuthenticatedIdentifierAction(
+          val authAction = new IdentifierActionImpl(
             new FakeFailingAuthConnector(new InsufficientEnrolments),
-            appConfig,
+            new IdGenerator,
             bodyParsers
           )
           val controller = new Harness(authAction)
@@ -106,11 +106,11 @@ class AuthActionUnitSpec extends UnitBaseSpec {
 
         running(application) {
           val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
+          application.injector.instanceOf[AppConfig]
 
-          val authAction = new AuthenticatedIdentifierAction(
+          val authAction = new IdentifierActionImpl(
             new FakeFailingAuthConnector(new UnsupportedAuthProvider),
-            appConfig,
+            new IdGenerator,
             bodyParsers
           )
           val controller = new Harness(authAction)
@@ -126,11 +126,11 @@ class AuthActionUnitSpec extends UnitBaseSpec {
 
         running(application) {
           val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
+          application.injector.instanceOf[AppConfig]
 
-          val authAction = new AuthenticatedIdentifierAction(
+          val authAction = new IdentifierActionImpl(
             new FakeFailingAuthConnector(new UnsupportedAffinityGroup),
-            appConfig,
+            new IdGenerator,
             bodyParsers
           )
           val controller = new Harness(authAction)
@@ -146,11 +146,11 @@ class AuthActionUnitSpec extends UnitBaseSpec {
 
         running(application) {
           val bodyParsers = application.injector.instanceOf[BodyParsers.Default]
-          val appConfig = application.injector.instanceOf[AppConfig]
+          application.injector.instanceOf[AppConfig]
 
-          val authAction = new AuthenticatedIdentifierAction(
+          val authAction = new IdentifierActionImpl(
             new FakeFailingAuthConnector(new UnsupportedCredentialRole),
-            appConfig,
+            new IdGenerator,
             bodyParsers
           )
 
