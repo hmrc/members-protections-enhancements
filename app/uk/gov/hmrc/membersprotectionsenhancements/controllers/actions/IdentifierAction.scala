@@ -23,15 +23,12 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.~
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{IdentifierRequest, UserType}
-import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests._
+import uk.gov.hmrc.membersprotectionsenhancements.config.Constants
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.{
-  AdministratorRequest,
-  PractitionerRequest
-}
-import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest._
+import uk.gov.hmrc.membersprotectionsenhancements.utils.{HeaderKey, IdGenerator, Logging}
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
   InternalError,
   InvalidBearerTokenError,
@@ -40,51 +37,72 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[AuthenticatedIdentifierAction])
+@ImplementedBy(classOf[IdentifierActionImpl])
 trait IdentifierAction extends ActionBuilder[IdentifierRequest, AnyContent]
 
 @Singleton
-class AuthenticatedIdentifierAction @Inject() (
+class IdentifierActionImpl @Inject() (
   override val authConnector: AuthConnector,
-  config: AppConfig,
+  idGenerator: IdGenerator,
   playBodyParsers: BodyParsers.Default
 )(implicit override val executionContext: ExecutionContext)
     extends IdentifierAction
     with AuthorisedFunctions
     with Logging {
 
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
+  override def parser: BodyParser[AnyContent] = playBodyParsers
 
-    implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+  private[actions] def handleWithCorrelationId[A](
+    request: Request[A]
+  )(block: RequestWithCorrelationId[A] => Future[Result]): Future[Result] = {
+    logger.info("Received a request. Attempting to retrieve Correlation ID from request headers")
 
-    authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
-      .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
-
-        case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
-          block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, request))
-        case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
-          block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, request))
-        case _ =>
-          Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    val correlationId = request.headers
+      .get(HeaderKey.correlationIdKey)
+      .fold {
+        logger.warn("Correlation ID was missing from request headers. Generating new ID for request")
+        idGenerator.getCorrelationId
+      } { id =>
+        logger.info("Correlation ID was successfully retrieved from request headers")
+        id
       }
-      .recoverWith {
-        case e: MissingBearerToken =>
-          logger.warn(
-            s"[AuthenticatedIdentifierAction][invokeBlock - MissingBearerToken] An unexpected error occurred: ${e.printStackTrace()}"
-          )
-          Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
-        case e: AuthorisationException =>
-          logger.warn(
-            s"[AuthenticatedIdentifierAction][invokeBlock - AuthorisationException] An unexpected error occurred: ${e.printStackTrace()}"
-          )
-          Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
-        case error =>
-          logger.warn(s"[AuthenticatedIdentifierAction][invokeBlock - authorised] An unexpected error occurred: $error")
-          Future.successful(InternalServerError(Json.toJson(InternalError)))
-      }
+
+    block(RequestWithCorrelationId(request, CorrelationId(correlationId)))
   }
 
-  override def parser: BodyParser[AnyContent] = playBodyParsers
+  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
+    handleWithCorrelationId(request) { req =>
+      logger.info(s"Attempting to complete authorisation for request with correlationId: ${req.correlationId}")
+      implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(req)
+
+      authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
+        .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
+
+          case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
+            block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, req))
+          case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
+            block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, req))
+          case _ =>
+            Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+        }
+        .recoverWith {
+          case e: MissingBearerToken =>
+            logger.warn(
+              s"[AuthenticatedIdentifierAction][invokeBlock - MissingBearerToken] An unexpected error occurred: ${e.printStackTrace()}"
+            )
+            Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
+          case e: AuthorisationException =>
+            logger.warn(
+              s"[AuthenticatedIdentifierAction][invokeBlock - AuthorisationException] An unexpected error occurred: ${e.printStackTrace()}"
+            )
+            Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
+          case error =>
+            logger.warn(
+              s"[AuthenticatedIdentifierAction][invokeBlock - authorised] An unexpected error occurred: $error"
+            )
+            Future.successful(InternalServerError(Json.toJson(InternalError)))
+        }
+    }
 
   private object IsPSA {
     def unapply(enrolments: Enrolments): Option[EnrolmentIdentifier] =
@@ -99,4 +117,5 @@ class AuthenticatedIdentifierAction @Inject() (
         .find(_.key == Constants.pspEnrolmentKey)
         .flatMap(_.getIdentifier(Constants.pspId))
   }
+
 }

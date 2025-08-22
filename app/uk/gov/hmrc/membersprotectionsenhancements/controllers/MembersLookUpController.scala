@@ -17,7 +17,7 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{DataRetrievalAction, IdentifierAction}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.IdentifierAction
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.membersprotectionsenhancements.orchestrators.MembersLookUpOrchestrator
@@ -35,7 +35,6 @@ import javax.inject.{Inject, Singleton}
 class MembersLookUpController @Inject() (
   cc: ControllerComponents,
   identify: IdentifierAction,
-  getData: DataRetrievalAction,
   orchestrator: MembersLookUpOrchestrator,
   validator: MembersLookUpValidator
 )(implicit ec: ExecutionContext)
@@ -43,7 +42,7 @@ class MembersLookUpController @Inject() (
     with Logging {
   val classLoggingContext: String = "MembersLookUpController"
 
-  def checkAndRetrieve: Action[JsValue] = identify.andThen(getData).async(parse.json) { request =>
+  def checkAndRetrieve: Action[JsValue] = identify.async(parse.json) { request =>
     val methodLoggingContext: String = "checkAndRetrieve"
     val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 

@@ -19,7 +19,11 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserType.PSP
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.AffinityGroup
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{
+  CorrelationId,
+  IdentifierRequest,
+  RequestWithCorrelationId
+}
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest.PractitionerRequest
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,12 +31,18 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.Inject
 
 class FakePspIdentifierAction @Inject() (bodyParsers: BodyParsers.Default) extends IdentifierAction {
+  override def parser: BodyParser[AnyContent] = bodyParsers
+  override protected def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
-    block(PractitionerRequest(AffinityGroup.Individual, "id", "21000002", PSP, request))
+    block(
+      PractitionerRequest(
+        affGroup = AffinityGroup.Individual,
+        userId = "id",
+        pspId = "21000002",
+        psrUserType = PSP,
+        request = RequestWithCorrelationId(request, CorrelationId("someId"))
+      )
+    )
 
-  override def parser: BodyParser[AnyContent] = bodyParsers
-
-  override protected def executionContext: ExecutionContext =
-    scala.concurrent.ExecutionContext.Implicits.global
 }
