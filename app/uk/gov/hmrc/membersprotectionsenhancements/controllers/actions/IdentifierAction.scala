@@ -77,29 +77,28 @@ class IdentifierActionImpl @Inject() (
 
       authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
         .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
-
           case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
+            logger.info("Authorisation completed successfully for PSA user")
             block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, req))
           case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
+            logger.info("Authorisation completed successfully for PSP user")
             block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, req))
           case _ =>
-            Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+            val err: UnauthorizedException = new UnauthorizedException(
+              message = "Unable to retrieve user details or type from authorisation response"
+            )
+            logger.warn("Authorisation completed successfully, but could not retrieve user details or type", err)
+            Future.failed(err)
         }
         .recoverWith {
-          case e: MissingBearerToken =>
-            logger.warn(
-              s"[AuthenticatedIdentifierAction][invokeBlock - MissingBearerToken] An unexpected error occurred: ${e.printStackTrace()}"
-            )
+          case err: MissingBearerToken =>
+            logger.warn("Authorisation bearer token could not be found", err)
             Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
-          case e: AuthorisationException =>
-            logger.warn(
-              s"[AuthenticatedIdentifierAction][invokeBlock - AuthorisationException] An unexpected error occurred: ${e.printStackTrace()}"
-            )
+          case err: AuthorisationException =>
+            logger.warn(s"An error occurred during authorisation", err)
             Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
-          case error =>
-            logger.warn(
-              s"[AuthenticatedIdentifierAction][invokeBlock - authorised] An unexpected error occurred: $error"
-            )
+          case err =>
+            logger.error("An unexpected error occurred", err)
             Future.successful(InternalServerError(Json.toJson(InternalError)))
         }
     }
