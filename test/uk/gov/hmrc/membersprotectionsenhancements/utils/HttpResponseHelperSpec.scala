@@ -154,6 +154,19 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
       result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe EmptyDataError.code
     }
 
+    "[httpReads] of GET method should handle appropriately for a success with empty json response" in {
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
+        .httpReads[DummyClass]
+        .read(
+          method = "GET",
+          url = dummyUrl,
+          response = HttpResponse(OK, """{}""")
+        )
+
+      result mustBe a[Left[_, _]]
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe EmptyDataError.code
+    }
+
     "[httpReads] of POST method should handle appropriately for a success with no response body" in {
       val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
         .httpReads[DummyClass]
