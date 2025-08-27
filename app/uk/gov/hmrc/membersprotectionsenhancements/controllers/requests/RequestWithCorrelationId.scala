@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.config
+package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
-import com.google.inject.AbstractModule
+import play.api.mvc.{Request, WrappedRequest}
 
-class Module extends AbstractModule {
-
-  override def configure(): Unit =
-    bind(classOf[AppConfig]).asEagerSingleton()
-
-}
+case class RequestWithCorrelationId[A](request: Request[A], correlationId: CorrelationId)
+    extends WrappedRequest[A](request)

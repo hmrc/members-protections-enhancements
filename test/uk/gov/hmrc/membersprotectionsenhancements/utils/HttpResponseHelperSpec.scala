@@ -25,10 +25,7 @@ import uk.gov.hmrc.http._
 
 class HttpResponseHelperSpec extends UnitBaseSpec {
 
-  private object TestObject extends HttpResponseHelper {
-    override val classLoggingContext: String = ""
-  }
-
+  private object TestObject extends HttpResponseHelper with Logging
   protected case class DummyClass(field: String)
 
   protected object DummyClass {
@@ -42,7 +39,13 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
     def handleErrorScenario(status: Int, method: String, expectedErrorCode: String): Unit =
       s"[handleErrorResponse] should handle appropriately for method: $method, and status: $status" in {
         val dummyResponse = HttpResponse(status, "{}")
-        lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(method, dummyUrl, dummyResponse)
+        lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(
+          httpMethod = method,
+          url = dummyUrl,
+          response = dummyResponse,
+          correlationId = correlationId,
+          extraContext = None
+        )
         testResult.error.code mustBe expectedErrorCode
       }
 
@@ -63,8 +66,10 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
 
   "jsonValidation" -> {
     "[jsonValidation] when provided with non-valid JSON should return an error" in {
-      TestObject.jsonValidation[DummyClass]("", correlationId) mustBe Left(ErrorWrapper(correlationId, InternalError))
-      TestObject.jsonValidation[DummyClass]("""{"field"}""", correlationId) mustBe Left(
+      TestObject.jsonValidation[DummyClass]("", correlationId, None) mustBe Left(
+        ErrorWrapper(correlationId, InternalError)
+      )
+      TestObject.jsonValidation[DummyClass]("""{"field"}""", correlationId, None) mustBe Left(
         ErrorWrapper(correlationId, InternalError)
       )
     }
@@ -76,7 +81,8 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
           | "field": 2
           |}
         """.stripMargin,
-        correlationId
+        correlationId,
+        None
       )
 
       res mustBe a[Left[_, _]]
@@ -90,7 +96,8 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
           | "field": "value"
           |}
         """.stripMargin,
-        correlationId
+        correlationId,
+        Some("loggingContext")
       )
 
       res mustBe a[Right[_, _]]

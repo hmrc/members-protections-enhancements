@@ -83,5 +83,4 @@ abstract class ItBaseSpec
         .withRequestBody(equalTo(requestBody))
         .willReturn(response)
     )
-
 }

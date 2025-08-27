@@ -19,13 +19,14 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 import play.api.mvc.{Request, WrappedRequest}
 import uk.gov.hmrc.auth.core.AffinityGroup
 
-sealed abstract class IdentifierRequest[A](request: Request[A]) extends WrappedRequest[A](request) { self =>
-  val userDetails: UserDetails
+sealed abstract class IdentifierRequest[A](request: Request[A], correlationId: CorrelationId)
+    extends WrappedRequest[A](request) {
+  val getCorrelationId: CorrelationId = correlationId
 }
 
 object IdentifierRequest {
-  case class AdministratorRequest[A](userDetails: UserDetails, request: Request[A])
-      extends IdentifierRequest[A](request)
+  case class AdministratorRequest[A](request: Request[A], correlationId: CorrelationId, userDetails: UserDetails)
+      extends IdentifierRequest[A](request, correlationId)
 
   object AdministratorRequest {
     def apply[A](
@@ -33,12 +34,17 @@ object IdentifierRequest {
       userId: String,
       psaId: String,
       psrUserType: UserType,
-      request: Request[A]
+      request: RequestWithCorrelationId[A]
     ): IdentifierRequest[A] =
-      AdministratorRequest(UserDetails(psrUserType, psaId, userId, affGroup), request)
+      AdministratorRequest(
+        request = request.request,
+        correlationId = request.correlationId,
+        userDetails = UserDetails(psrUserType, psaId, userId, affGroup)
+      )
   }
 
-  case class PractitionerRequest[A](userDetails: UserDetails, request: Request[A]) extends IdentifierRequest[A](request)
+  case class PractitionerRequest[A](request: Request[A], correlationId: CorrelationId, userDetails: UserDetails)
+      extends IdentifierRequest[A](request, correlationId)
 
   object PractitionerRequest {
     def apply[A](
@@ -46,9 +52,13 @@ object IdentifierRequest {
       userId: String,
       pspId: String,
       psrUserType: UserType,
-      request: Request[A]
+      request: RequestWithCorrelationId[A]
     ): IdentifierRequest[A] =
-      PractitionerRequest(UserDetails(psrUserType, pspId, userId, affGroup), request)
+      PractitionerRequest(
+        request = request.request,
+        correlationId = request.correlationId,
+        userDetails = UserDetails(psrUserType, pspId, userId, affGroup)
+      )
   }
 
 }

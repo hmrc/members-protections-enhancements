@@ -68,8 +68,7 @@ trait UnitBaseSpec
   protected def applicationBuilder(): GuiceApplicationBuilder =
     new GuiceApplicationBuilder()
       .overrides(
-        bind[IdentifierAction].toInstance(fakePsaIdentifierAction),
-        bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction)
+        bind[IdentifierAction].toInstance(fakePsaIdentifierAction)
       )
 
   def runningApplication(block: Application => Unit): Unit =
@@ -80,5 +79,4 @@ trait UnitBaseSpec
   def urlEncode(input: String): String = URLEncoder.encode(input, "utf-8")
 
   lazy val client: WSClient = app.injector.instanceOf[WSClient]
-
 }

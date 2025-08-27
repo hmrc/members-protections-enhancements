@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-case class ResponseWrapper[+A](correlationId: String, responseData: A) {
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
+
+case class ResponseWrapper[+A](correlationId: CorrelationId, responseData: A) {
   def map[B](f: A => B): ResponseWrapper[B] = ResponseWrapper(correlationId, f(responseData))
 }

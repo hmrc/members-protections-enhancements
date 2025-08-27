@@ -17,15 +17,14 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers
 
 import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.{DataRetrievalAction, IdentifierAction}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.IdentifierAction
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.membersprotectionsenhancements.orchestrators.MembersLookUpOrchestrator
 import cats.data.EitherT
 import play.api.libs.json._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validators.MembersLookUpValidator
-import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,7 +34,6 @@ import javax.inject.{Inject, Singleton}
 class MembersLookUpController @Inject() (
   cc: ControllerComponents,
   identify: IdentifierAction,
-  getData: DataRetrievalAction,
   orchestrator: MembersLookUpOrchestrator,
   validator: MembersLookUpValidator
 )(implicit ec: ExecutionContext)
@@ -43,38 +41,49 @@ class MembersLookUpController @Inject() (
     with Logging {
   val classLoggingContext: String = "MembersLookUpController"
 
-  def checkAndRetrieve: Action[JsValue] = identify.andThen(getData).async(parse.json) { request =>
+  def checkAndRetrieve: Action[JsValue] = identify.async(parse.json) { implicit request =>
     val methodLoggingContext: String = "checkAndRetrieve"
-    val fullLoggingContext: String = s"[$classLoggingContext][$methodLoggingContext]"
 
-    logger.info(
-      s"$fullLoggingContext - Received authenticated request to perform check and retrieve for supplied member details"
+    implicit val requestCorrelationId: CorrelationId = request.getCorrelationId
+
+    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId, Some("authenticated"))
+
+    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
+      methodLoggingContext,
+      idLogString(correlationId)
     )
 
-    implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
-    implicit val correlationId: String = request.headers.get("correlationId").getOrElse("No correlationId")
+    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
+      methodLoggingContext,
+      idLogString(correlationId)
+    )
+
+    infoLogger(requestCorrelationId)("Attempting to check for, and retrieve member's protection record details")
 
     val result =
       for {
         validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body))
         response <- orchestrator.checkAndRetrieve(validatedRequest)
       } yield {
-        logger.info(s"$fullLoggingContext - Success response received with correlationId ${response.correlationId}")
-
-        Ok(Json.toJson(response.responseData)).withHeaders("correlationId" -> response.correlationId)
+        infoLogger(response.correlationId)("Successfully retrieved member's protection record details")
+        Ok(Json.toJson(response.responseData)).withHeaders("correlationId" -> response.correlationId.value)
       }
 
     result.leftMap { errorWrapper =>
-      logger.warn(
-        s"$fullLoggingContext - Error response received: $errorWrapper with correlationId ${errorWrapper.correlationId}"
+      warnLogger(errorWrapper.correlationId)(
+        "An error occurred while attempting to check for, and retrieve member's protection record details" +
+          s"with code: ${errorWrapper.error.code}, message: ${errorWrapper.error.message}, and source: ${errorWrapper.error.source}",
+        None
       )
+
       val errorResponse = errorWrapper.error.code match {
         case "BAD_REQUEST" => BadRequest(Json.toJson(errorWrapper.error))
         case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(errorWrapper.error))
         case "FORBIDDEN" => Forbidden(Json.toJson(errorWrapper.error))
         case _ => InternalServerError(Json.toJson(errorWrapper.error))
       }
-      errorResponse.withHeaders("correlationId" -> errorWrapper.correlationId)
+
+      errorResponse.withHeaders("correlationId" -> errorWrapper.correlationId.value)
     }.merge
   }
 }

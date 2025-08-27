@@ -19,7 +19,7 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validato
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
 import base.UnitBaseSpec
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -27,7 +27,7 @@ import java.time.LocalDate
 
 class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
-  implicit val correlationId: String = "X-123"
+  implicit val correlationId: CorrelationId = "X-123"
 
   val validator = new MembersLookUpValidator()
 
