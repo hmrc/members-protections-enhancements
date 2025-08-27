@@ -19,7 +19,7 @@ package uk.gov.hmrc.membersprotectionsenhancements.connectors
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, MpeError}
 import com.github.tomakehurst.wiremock.client.WireMock._
 import base.ItBaseSpec
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import uk.gov.hmrc.membersprotectionsenhancements.models.response._
 import play.api.test.DefaultAwaitTimeout
 import com.github.tomakehurst.wiremock.client.WireMock
@@ -47,7 +47,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
     val connector: NpsConnector = application.injector.instanceOf[NpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val correlationId: String = "X-123"
+    implicit val correlationId: CorrelationId = "X-123"
   }
 
   "NpsConnector" -> {

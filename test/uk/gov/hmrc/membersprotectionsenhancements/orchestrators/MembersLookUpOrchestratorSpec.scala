@@ -20,7 +20,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
 import cats.data.EitherT
 import uk.gov.hmrc.http.HeaderCarrier
 import org.mockito.stubbing.OngoingStubbing
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import org.mockito.ArgumentMatchers
 import uk.gov.hmrc.membersprotectionsenhancements.models.response._
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -40,7 +40,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     val orchestrator: MembersLookUpOrchestrator = new MembersLookUpOrchestrator(npsConnector)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val correlationId: String = "X-123"
+    implicit val correlationId: CorrelationId = "X-123"
 
     val request: PensionSchemeMemberRequest = PensionSchemeMemberRequest(
       firstName = "Paul",

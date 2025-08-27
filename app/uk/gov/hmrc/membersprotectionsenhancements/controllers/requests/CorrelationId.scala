@@ -16,4 +16,10 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 
+import scala.language.implicitConversions
+
 case class CorrelationId(value: String)
+
+object CorrelationId {
+  implicit def correlationIdConverter(str: String): CorrelationId = CorrelationId(str)
+}

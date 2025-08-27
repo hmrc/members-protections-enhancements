@@ -50,6 +50,24 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     s"Basic $encoded"
   }
 
+  private def checkIdsMatch(
+    requestCorrelationId: CorrelationId,
+    responseCorrelationId: CorrelationId,
+    extraLoggingContext: Option[String]
+  ): CorrelationId =
+    if (requestCorrelationId.value == responseCorrelationId.value) {
+      responseCorrelationId
+    } else {
+      logger.error(
+        secondaryContext = "checkIdsMatch",
+        message = "Correlation ID was either missing from response, or did not match ID from request. " +
+          "Reverting to ID from request for consistency in logs. Be aware of potential ID inconsistencies" +
+          s"Request C-ID: ${requestCorrelationId.value}, Response C-ID: ${responseCorrelationId.value}",
+        extraContext = extraLoggingContext
+      )
+      requestCorrelationId
+    }
+
   def matchPerson(
     request: PensionSchemeMemberRequest
   )(implicit
@@ -88,17 +106,19 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .execute[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
     ).bimap(
       err => {
-        warnLogger(err.correlationId)(
+        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId, Some(methodLoggingContext))
+        warnLogger(resultCorrelationId)(
           s"Match attempt failed to complete with error: ${err.error}",
           None
         )
-        err.copy(error = err.error.copy(source = MatchPerson))
+        err.copy(error = err.error.copy(source = MatchPerson), correlationId = resultCorrelationId)
       },
       resp => {
-        infoLogger(resp.correlationId)(
+        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId, Some(methodLoggingContext))
+        infoLogger(resultCorrelationId)(
           s"Request to match supplied member details completed successfully with result: ${resp.responseData}"
         )
-        resp
+        resp.copy(correlationId = resultCorrelationId)
       }
     )
   }

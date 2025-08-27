@@ -79,5 +79,4 @@ trait UnitBaseSpec
   def urlEncode(input: String): String = URLEncoder.encode(input, "utf-8")
 
   lazy val client: WSClient = app.injector.instanceOf[WSClient]
-
 }

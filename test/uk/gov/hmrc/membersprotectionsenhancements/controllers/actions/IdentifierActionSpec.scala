@@ -20,7 +20,7 @@ import play.api.test.{FakeRequest, StubPlayBodyParsersFactory}
 import play.api.mvc.{Action, AnyContent, BodyParsers}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserDetails
-import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
+import uk.gov.hmrc.membersprotectionsenhancements.config.Constants
 import play.api.mvc.Results.Ok
 import uk.gov.hmrc.membersprotectionsenhancements.utils.IdGenerator
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
