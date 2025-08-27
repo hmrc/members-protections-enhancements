@@ -27,6 +27,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.Correlati
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validators.MembersLookUpValidator
 
 import scala.concurrent.{ExecutionContext, Future}
+
 import javax.inject.{Inject, Singleton}
 
 @Singleton
@@ -63,8 +64,7 @@ class MembersLookUpController @Inject() (
       for {
         validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body))
         response <- orchestrator.checkAndRetrieve(validatedRequest)
-      }
-      yield {
+      } yield {
         infoLogger(response.correlationId)("Successfully retrieved member's protection record details")
         Ok(Json.toJson(response.responseData)).withHeaders("correlationId" -> response.correlationId.value)
       }
@@ -72,7 +72,7 @@ class MembersLookUpController @Inject() (
     result.leftMap { errorWrapper =>
       warnLogger(errorWrapper.correlationId)(
         "An error occurred while attempting to check for, and retrieve member's protection record details" +
-        s"with code: ${errorWrapper.error.code}, message: ${errorWrapper.error.message}, and source: ${errorWrapper.error.source}",
+          s"with code: ${errorWrapper.error.code}, message: ${errorWrapper.error.message}, and source: ${errorWrapper.error.source}",
         None
       )
 

@@ -83,8 +83,7 @@ class IdentifierActionImpl @Inject() (
     block(RequestWithCorrelationId(request, CorrelationId(correlationId)))
   }
 
-  override def invokeBlock[A](request: Request[A],
-                              block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
+  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
     val methodLoggingContext: String = "invokeBlock"
 
     logger.info(methodLoggingContext, "Attempting to complete authorisation for request")

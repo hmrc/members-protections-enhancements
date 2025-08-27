@@ -20,39 +20,40 @@ import play.api.Logger
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 
 trait Logging {
-  private val primaryContext : String = this.getClass.getSimpleName.replace("$", "")
+  private val primaryContext: String = this.getClass.getSimpleName.replace("$", "")
   protected lazy val logger: LoggerWithContext = LoggerWithContext(Logger(this.getClass), primaryContext)
 
   private def formatStringOpt(valueOpt: Option[String]): String = valueOpt.fold("")(value => " " + value)
 
-  protected def correlationIdLogString(correlationId: CorrelationId, requestContext: Option[String] = None) =
+  protected def correlationIdLogString(correlationId: CorrelationId, requestContext: Option[String] = None): String =
     s" for${formatStringOpt(requestContext)} request with correlationId: $correlationId"
 
-  protected def infoLog(secondaryContext: String,
-                        dataLog: String = "",
-                        extraContext: Option[String] = None): String => Unit =
+  protected def infoLog(
+    secondaryContext: String,
+    dataLog: String = "",
+    extraContext: Option[String] = None
+  ): String => Unit =
     (message: String) => logger.info(secondaryContext, message, dataLog, extraContext)
 
-  protected def warnLog(secondaryContext: String,
-                        dataLog: String = "",
-                        extraContext: Option[String] = None): (String, Option[Throwable]) => Unit =
+  protected def warnLog(
+    secondaryContext: String,
+    dataLog: String = "",
+    extraContext: Option[String] = None
+  ): (String, Option[Throwable]) => Unit =
     (message: String, exOpt: Option[Throwable]) =>
       exOpt.fold(
         logger.warn(secondaryContext, message, dataLog, extraContext)
-      )(
-        ex => logger.warnWithException(secondaryContext, message, ex, dataLog, extraContext)
-      )
+      )(ex => logger.warnWithException(secondaryContext, message, ex, dataLog, extraContext))
 
-
-  protected def errorLog(secondaryContext: String,
-                         dataLog: String = "",
-                         extraContext: Option[String] = None): (String, Option[Throwable]) => Unit =
+  protected def errorLog(
+    secondaryContext: String,
+    dataLog: String = "",
+    extraContext: Option[String] = None
+  ): (String, Option[Throwable]) => Unit =
     (message: String, exOpt: Option[Throwable]) =>
       exOpt.fold(
         logger.error(secondaryContext, message, dataLog, extraContext)
-      )(
-        ex => logger.errorWithException(secondaryContext, message, ex, dataLog, extraContext)
-      )
+      )(ex => logger.errorWithException(secondaryContext, message, ex, dataLog, extraContext))
 }
 
 case class LoggerWithContext(underlying: Logger, primaryContext: String) {
@@ -65,12 +66,29 @@ case class LoggerWithContext(underlying: Logger, primaryContext: String) {
   def warn(secondaryContext: String, message: String, dataLog: String = "", extraContext: Option[String] = None): Unit =
     underlying.warn(s"[$primaryContext]${contextFoldOpt(extraContext)}[$secondaryContext] - $message" + dataLog)
 
-  def warnWithException(secondaryContext: String, message: String, ex: Throwable, dataLog: String = "", extraContext: Option[String] = None): Unit =
+  def warnWithException(
+    secondaryContext: String,
+    message: String,
+    ex: Throwable,
+    dataLog: String = "",
+    extraContext: Option[String] = None
+  ): Unit =
     underlying.warn(s"[$primaryContext]${contextFoldOpt(extraContext)}[$secondaryContext] - $message" + dataLog, ex)
 
-  def error(secondaryContext: String, message: String, dataLog: String = "", extraContext: Option[String] = None): Unit =
+  def error(
+    secondaryContext: String,
+    message: String,
+    dataLog: String = "",
+    extraContext: Option[String] = None
+  ): Unit =
     underlying.error(s"[$primaryContext]${contextFoldOpt(extraContext)}[$secondaryContext] - $message" + dataLog)
 
-  def errorWithException(secondaryContext: String, message: String, ex: Throwable, dataLog: String = "", extraContext: Option[String] = None): Unit =
+  def errorWithException(
+    secondaryContext: String,
+    message: String,
+    ex: Throwable,
+    dataLog: String = "",
+    extraContext: Option[String] = None
+  ): Unit =
     underlying.error(s"[$primaryContext]${contextFoldOpt(extraContext)}[$secondaryContext] - $message" + dataLog, ex)
 }

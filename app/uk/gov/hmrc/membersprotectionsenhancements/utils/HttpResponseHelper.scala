@@ -20,12 +20,12 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.core.JsonParseException
 import play.api.libs.json._
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
 import play.api.http.Status._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 
-trait HttpResponseHelper extends HttpErrorFunctions {_: Logging =>
+trait HttpResponseHelper extends HttpErrorFunctions { _: Logging =>
 
   private def retrieveCorrelationId(response: HttpResponse): CorrelationId =
     CorrelationId(response.header("correlationId").getOrElse("No correlationId"))

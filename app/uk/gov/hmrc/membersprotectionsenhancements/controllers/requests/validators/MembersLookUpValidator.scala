@@ -18,16 +18,19 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validato
 
 import play.api.libs.json._
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
 import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
+
+import scala.concurrent.ExecutionContext
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 @Singleton
 class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) extends Logging {
 
-  def validate(requestBody: JsValue)(implicit correlationId: CorrelationId): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
+  def validate(
+    requestBody: JsValue
+  )(implicit correlationId: CorrelationId): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
     val methodLoggingContext: String = "validate"
 
     val idLogString: String = correlationIdLogString(correlationId)

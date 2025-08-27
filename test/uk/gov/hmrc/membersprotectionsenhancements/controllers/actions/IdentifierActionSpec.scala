@@ -25,8 +25,8 @@ import play.api.mvc.Results.Ok
 import uk.gov.hmrc.membersprotectionsenhancements.utils.IdGenerator
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
   InternalError,
-  UnauthorisedError,
-  InvalidBearerTokenError
+  InvalidBearerTokenError,
+  UnauthorisedError
 }
 import play.api.test.Helpers._
 import org.mockito.Mockito.when
@@ -43,7 +43,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.Identifie
 import scala.concurrent.{ExecutionContext, Future}
 
 class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory {
-  private val dummyIdGenerator = new IdGenerator{
+  private val dummyIdGenerator = new IdGenerator {
     override val getCorrelationId: String = "generatedId"
   }
 
@@ -83,9 +83,11 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
 
   def handler: Handler = new Handler()
 
-  def authResult(affinityGroup: Option[AffinityGroup],
-                 internalId: Option[String],
-                 enrolments: Enrolment*): Option[String] ~ Option[AffinityGroup] ~ Enrolments =
+  def authResult(
+    affinityGroup: Option[AffinityGroup],
+    internalId: Option[String],
+    enrolments: Enrolment*
+  ): Option[String] ~ Option[AffinityGroup] ~ Enrolments =
     internalId.and(affinityGroup).and(Enrolments(enrolments.toSet))
 
   val psaEnrolment: Enrolment = Enrolment(
@@ -118,7 +120,7 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
         redirectLocation(result) mustBe None
         contentAsJson(result) mustBe Json.toJson(InternalError)
       }
-      
+
       "when authorise fails to match predicate" in runningApplication { _ =>
         setAuthValue(Future.failed(new AuthorisationException("Authorise predicate fails") {}))
         val result = handler.run(FakeRequest())

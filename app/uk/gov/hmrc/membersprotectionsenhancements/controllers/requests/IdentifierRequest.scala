@@ -19,16 +19,14 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 import play.api.mvc.{Request, WrappedRequest}
 import uk.gov.hmrc.auth.core.AffinityGroup
 
-sealed abstract class IdentifierRequest[A](request: Request[A],
-                                           correlationId: CorrelationId,
-                                           userDetails: UserDetails)
+sealed abstract class IdentifierRequest[A](request: Request[A], correlationId: CorrelationId)
     extends WrappedRequest[A](request) {
   val getCorrelationId: CorrelationId = correlationId
 }
 
 object IdentifierRequest {
   case class AdministratorRequest[A](request: Request[A], correlationId: CorrelationId, userDetails: UserDetails)
-      extends IdentifierRequest[A](request, correlationId, userDetails)
+      extends IdentifierRequest[A](request, correlationId)
 
   object AdministratorRequest {
     def apply[A](
@@ -46,7 +44,7 @@ object IdentifierRequest {
   }
 
   case class PractitionerRequest[A](request: Request[A], correlationId: CorrelationId, userDetails: UserDetails)
-      extends IdentifierRequest[A](request, correlationId, userDetails)
+      extends IdentifierRequest[A](request, correlationId)
 
   object PractitionerRequest {
     def apply[A](

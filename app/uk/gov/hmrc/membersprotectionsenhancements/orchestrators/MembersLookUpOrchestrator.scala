@@ -16,23 +16,25 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, NoMatchError}
 import cats.data.EitherT
 import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, NpsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import uk.gov.hmrc.membersprotectionsenhancements.models.response._
 import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, NoMatchError}
 
 import scala.concurrent.{ExecutionContext, Future}
+
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)
-                                          (implicit val ec: ExecutionContext) extends Logging {
+class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit val ec: ExecutionContext)
+    extends Logging {
 
-  def checkAndRetrieve(request: PensionSchemeMemberRequest)
-                      (implicit hc: HeaderCarrier, correlationId: CorrelationId): ConnectorResult[ProtectionRecordDetails] = {
+  def checkAndRetrieve(
+    request: PensionSchemeMemberRequest
+  )(implicit hc: HeaderCarrier, correlationId: CorrelationId): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "checkAndRetrieve"
 
     def idLogString(correlationId: CorrelationId): String = correlationIdLogString(
@@ -59,9 +61,11 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)
       case ResponseWrapper(responseCorrelationId, `NO MATCH`) =>
         warnLogger(responseCorrelationId)("Could not match supplied member details", None)
         EitherT[Future, ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
-          Future.successful(Left[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
-            ErrorWrapper(responseCorrelationId, NoMatchError)
-          ))
+          Future.successful(
+            Left[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
+              ErrorWrapper(responseCorrelationId, NoMatchError)
+            )
+          )
         )
     }
 
@@ -74,9 +78,10 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)
     }
   }
 
-  private def doRetrieval(request: PensionSchemeMemberRequest, extraContext: Some[String])
-                         (implicit headerCarrier: HeaderCarrier,
-                          correlationId: CorrelationId): ConnectorResult[ProtectionRecordDetails] = {
+  private def doRetrieval(request: PensionSchemeMemberRequest, extraContext: Some[String])(implicit
+    headerCarrier: HeaderCarrier,
+    correlationId: CorrelationId
+  ): ConnectorResult[ProtectionRecordDetails] = {
     val doRetrievalLoggingContext: String = "doRetrieval"
 
     def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId = correlationId)

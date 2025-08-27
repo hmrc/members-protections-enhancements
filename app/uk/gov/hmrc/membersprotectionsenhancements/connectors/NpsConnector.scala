@@ -16,24 +16,29 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import cats.data.EitherT
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
 import play.api.http.ContentTypes
 import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
+import cats.data.EitherT
+import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MatchPerson, RetrieveMpe}
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ProtectionRecordDetails, ResponseWrapper}
-import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{ENVIRONMENT, correlationIdKey, govUkOriginatorIdKey}
+import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{
+  MatchPersonResponse,
+  ProtectionRecordDetails,
+  ResponseWrapper
+}
 import uk.gov.hmrc.membersprotectionsenhancements.utils.{HttpResponseHelper, Logging}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MatchPerson, RetrieveMpe}
 
-import java.net.URI
+import scala.concurrent.ExecutionContext
+
 import java.util.Base64
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import java.net.URI
 
 @Singleton
 class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper with Logging {
@@ -91,7 +96,7 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
       },
       resp => {
         infoLogger(resp.correlationId)(
-          s"Request to match supplied member details completed successfully with result: ${resp.responseData}",
+          s"Request to match supplied member details completed successfully with result: ${resp.responseData}"
         )
         resp
       }
