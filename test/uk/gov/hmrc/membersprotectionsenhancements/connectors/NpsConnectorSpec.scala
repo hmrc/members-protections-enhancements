@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, MpeError}
 import com.github.tomakehurst.wiremock.client.WireMock._
 import base.ItBaseSpec
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
@@ -240,7 +240,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
         result.swap
           .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
           .error
-          .code mustBe "INTERNAL_SERVER_ERROR"
+          .code mustBe EmptyDataError.code
       }
 
       "[retrieveMpe] should return the expected result when NPS returns an invalid OK response" in new Test {

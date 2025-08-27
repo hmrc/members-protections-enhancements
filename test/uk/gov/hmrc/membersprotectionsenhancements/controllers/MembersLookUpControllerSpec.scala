@@ -209,13 +209,30 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         contentAsJson(result) mustBe Json.toJson(NoMatchError)
       }
 
-      "[checkAndRetrieve] return 404 for an empty data response" in new Test {
+      "[checkAndRetrieve] return 404 for an empty protectionRecords response" in new Test {
         setupStubs(
           downstreamRequestBody = downstreamRequestJson,
           matchStatus = OK,
           matchResponse = matchResponseJson,
           retrieveStatus = OK,
           retrieveResponse = """{"protectionRecords": []}""",
+          withRetrieveStub = true
+        )
+
+        val postRequest: FakeRequest[JsValue] = fakeRequest.withBody(requestJson)
+        val result: Future[Result] = controller.checkAndRetrieve(postRequest)
+
+        status(result) mustBe NOT_FOUND
+        contentAsJson(result) mustBe Json.toJson(EmptyDataError)
+      }
+
+      "[checkAndRetrieve] return 404 for an empty response body" in new Test {
+        setupStubs(
+          downstreamRequestBody = downstreamRequestJson,
+          matchStatus = OK,
+          matchResponse = matchResponseJson,
+          retrieveStatus = OK,
+          retrieveResponse = "",
           withRetrieveStub = true
         )
 

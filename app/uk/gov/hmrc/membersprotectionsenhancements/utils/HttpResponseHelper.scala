@@ -34,7 +34,7 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
     (method: String, url: String, response: HttpResponse) => {
       val methodLoggingContext: String = "[httpReads]"
       val logContextString = classLoggingContext + methodLoggingContext
-
+      val correlationId = retrieveCorrelationId(response)
       logger.info(
         s"$logContextString - Attempting to read HTTP response for request with method: $method, and url: $url" +
           s" with correlationId ${retrieveCorrelationId(response)}"
@@ -43,13 +43,17 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
       if (response.status == OK) {
         logger.info(
           s"$logContextString - HTTP response contained success status. Attempting to parse response body" +
-            s" with correlationId ${retrieveCorrelationId(response)}"
+            s" with correlationId $correlationId"
         )
-        jsonValidation[Resp](response.body, retrieveCorrelationId(response))
+        if (method == "GET" && response.body.isEmpty) {
+          Left(ErrorWrapper(correlationId, EmptyDataError))
+        } else {
+          jsonValidation[Resp](response.body, correlationId)
+        }
       } else {
         logger.warn(
           s"$logContextString - HTTP response contained error status: ${response.status}. Attempting to handle error" +
-            s" with correlationId ${retrieveCorrelationId(response)}"
+            s" with correlationId $correlationId"
         )
         Left(
           handleErrorResponse(httpMethod = method, url = url, response = response)
