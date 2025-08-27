@@ -277,6 +277,29 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
           .code mustBe "INTERNAL_SERVER_ERROR"
       }
 
+      "[retrieveMpe] should return the expected result when NPS returns an empty json OK response" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = okJson(
+            """
+              |{
+              |}
+            """.stripMargin
+          )
+        )
+
+        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+          await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a[Left[_, _]]
+        result.swap
+          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
+          .error
+          .code mustBe EmptyDataError.code
+      }
+
       "[retrieveMpe] should return the expected result when NPS returns a valid OK response" in new Test {
         stubGet(
           url = npsUrl,

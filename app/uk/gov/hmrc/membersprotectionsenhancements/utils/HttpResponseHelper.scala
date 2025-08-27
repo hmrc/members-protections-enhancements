@@ -45,7 +45,7 @@ trait HttpResponseHelper extends HttpErrorFunctions with Logging {
           s"$logContextString - HTTP response contained success status. Attempting to parse response body" +
             s" with correlationId $correlationId"
         )
-        if (method == "GET" && response.body.isEmpty) {
+        if (method == "GET" && (response.body.isEmpty || response.json == JsObject.empty)) {
           Left(ErrorWrapper(correlationId, EmptyDataError))
         } else {
           jsonValidation[Resp](response.body, correlationId)
