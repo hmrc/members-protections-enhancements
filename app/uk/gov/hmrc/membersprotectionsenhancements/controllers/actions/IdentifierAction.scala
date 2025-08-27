@@ -53,55 +53,85 @@ class IdentifierActionImpl @Inject() (
   override def parser: BodyParser[AnyContent] = playBodyParsers
 
   private[actions] def handleWithCorrelationId[A](
-    request: Request[A]
+    request: Request[A],
+    extraContext: String
   )(block: RequestWithCorrelationId[A] => Future[Result]): Future[Result] = {
-    logger.info("Received a request. Attempting to retrieve Correlation ID from request headers")
+    val methodLoggingContext: String = "handleWithCorrelationId"
+
+    val infoLogger: String => Unit = infoLog(
+      secondaryContext = methodLoggingContext,
+      extraContext = Some(extraContext)
+    )
+
+    val warnLogger: (String, Option[Throwable]) => Unit = warnLog(
+      secondaryContext = methodLoggingContext,
+      extraContext = Some(extraContext)
+    )
+
+    infoLogger("Attempting to retrieve Correlation ID from request headers")
 
     val correlationId = request.headers
       .get(HeaderKey.correlationIdKey)
       .fold {
-        logger.warn("Correlation ID was missing from request headers. Generating new ID for request")
+        warnLogger("Correlation ID was missing from request headers. Generating new ID for request", None)
         idGenerator.getCorrelationId
       } { id =>
-        logger.info("Correlation ID was successfully retrieved from request headers")
+        infoLogger("Correlation ID was successfully retrieved from request headers")
         id
       }
 
     block(RequestWithCorrelationId(request, CorrelationId(correlationId)))
   }
 
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
-    handleWithCorrelationId(request) { req =>
-      logger.info(s"Attempting to complete authorisation for request with correlationId: ${req.correlationId}")
+  override def invokeBlock[A](request: Request[A],
+                              block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
+    val methodLoggingContext: String = "invokeBlock"
+
+    logger.info(methodLoggingContext, "Attempting to complete authorisation for request")
+
+    handleWithCorrelationId(request, methodLoggingContext) { req =>
+      val idLogString = correlationIdLogString(req.correlationId)
+
+      val infoLogger: String => Unit = infoLog(
+        secondaryContext = methodLoggingContext,
+        dataLog = idLogString
+      )
+
+      val warnLogger: (String, Option[Throwable]) => Unit = warnLog(
+        secondaryContext = methodLoggingContext,
+        dataLog = idLogString
+      )
+
       implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(req)
 
       authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
         .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
           case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
-            logger.info("Authorisation completed successfully for PSA user")
+            infoLogger("Authorisation completed successfully for PSA user")
             block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, req))
           case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
-            logger.info("Authorisation completed successfully for PSP user")
+            infoLogger("Authorisation completed successfully for PSP user")
             block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, req))
           case _ =>
             val err: UnauthorizedException = new UnauthorizedException(
               message = "Unable to retrieve user details or type from authorisation response"
             )
-            logger.warn("Authorisation completed successfully, but could not retrieve user details or type", err)
+            warnLogger("Authorisation completed successfully, but could not retrieve user details or type", Some(err))
             Future.failed(err)
         }
         .recoverWith {
           case err: MissingBearerToken =>
-            logger.warn("Authorisation bearer token could not be found", err)
+            warnLogger("Authorisation bearer token could not be found", Some(err))
             Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
           case err: AuthorisationException =>
-            logger.warn(s"An error occurred during authorisation", err)
+            warnLogger(s"An authorisation error occurred", Some(err))
             Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
           case err =>
-            logger.error("An unexpected error occurred", err)
+            errorLog(methodLoggingContext, idLogString)("An unexpected error occurred", Some(err))
             Future.successful(InternalServerError(Json.toJson(InternalError)))
         }
     }
+  }
 
   private object IsPSA {
     def unapply(enrolments: Enrolments): Option[EnrolmentIdentifier] =

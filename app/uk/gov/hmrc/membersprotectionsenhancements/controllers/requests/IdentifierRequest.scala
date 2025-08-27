@@ -19,8 +19,12 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
 import play.api.mvc.{Request, WrappedRequest}
 import uk.gov.hmrc.auth.core.AffinityGroup
 
-sealed abstract class IdentifierRequest[A](request: Request[A], correlationId: CorrelationId, userDetails: UserDetails)
-    extends WrappedRequest[A](request)
+sealed abstract class IdentifierRequest[A](request: Request[A],
+                                           correlationId: CorrelationId,
+                                           userDetails: UserDetails)
+    extends WrappedRequest[A](request) {
+  val getCorrelationId: CorrelationId = correlationId
+}
 
 object IdentifierRequest {
   case class AdministratorRequest[A](request: Request[A], correlationId: CorrelationId, userDetails: UserDetails)
