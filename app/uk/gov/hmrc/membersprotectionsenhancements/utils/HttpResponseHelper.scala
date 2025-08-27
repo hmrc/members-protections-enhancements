@@ -42,8 +42,13 @@ trait HttpResponseHelper extends HttpErrorFunctions { _: Logging =>
       infoLogger(s"Attempting to read HTTP response with method: $method, and url: $url")
 
       if (response.status == OK) {
-        infoLogger("HTTP response contained success status. Attempting to parse response body")
-        jsonValidation[Resp](response.body, correlationId, Some(methodLoggingContext))
+        if (method == "GET" && (response.body.isEmpty || response.json == JsObject.empty)) {
+          infoLogger("HTTP response contained success status with an empty body. Converting to EmptyDataError")
+          Left(ErrorWrapper(correlationId, EmptyDataError))
+        } else {
+          infoLogger("HTTP response contained success status with a non-empty body. Attempting to parse response")
+          jsonValidation[Resp](response.body, correlationId, Some(methodLoggingContext))
+        }
       } else {
         warnLogger(
           s"HTTP response contained error status: ${response.status}. Attempting to handle error",
