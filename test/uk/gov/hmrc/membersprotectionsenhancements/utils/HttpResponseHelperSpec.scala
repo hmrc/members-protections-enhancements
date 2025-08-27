@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, InternalError}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, InternalError}
 import base.UnitBaseSpec
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
@@ -139,6 +139,32 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
 
       result mustBe a[Right[_, _]]
       result.getOrElse(ResponseWrapper(correlationId, DummyClass("N/A"))).responseData.field mustBe "value"
+    }
+
+    "[httpReads] of GET method should handle appropriately for a success with no response body" in {
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
+        .httpReads[DummyClass]
+        .read(
+          method = "GET",
+          url = dummyUrl,
+          response = HttpResponse(OK)
+        )
+
+      result mustBe a[Left[_, _]]
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe EmptyDataError.code
+    }
+
+    "[httpReads] of POST method should handle appropriately for a success with no response body" in {
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
+        .httpReads[DummyClass]
+        .read(
+          method = "POST",
+          url = dummyUrl,
+          response = HttpResponse(OK)
+        )
+
+      result mustBe a[Left[_, _]]
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe "INTERNAL_SERVER_ERROR"
     }
   }
 

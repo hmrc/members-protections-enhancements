@@ -141,6 +141,19 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         )
       }
 
+      "should return the EmptyDataError result when no data exists" in new Test {
+        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
+        retrieveMpeMock(Future.successful(Left(ErrorWrapper(correlationId, EmptyDataError))))
+        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+          await(orchestrator.checkAndRetrieve(request).value)
+
+        result mustBe a[Left[_, _]]
+        result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
+          correlationId,
+          EmptyDataError
+        )
+      }
+
       "should return the expected result when both calls succeeds" in new Test {
         matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
         retrieveMpeMock(
