@@ -28,12 +28,8 @@ import uk.gov.hmrc.membersprotectionsenhancements.config.Constants
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.IdentifierRequest._
-import uk.gov.hmrc.membersprotectionsenhancements.utils.{HeaderKey, IdGenerator, Logging}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
-  InternalError,
-  InvalidBearerTokenError,
-  UnauthorisedError
-}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.{HeaderKey, Logging}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,7 +39,6 @@ trait IdentifierAction extends ActionBuilder[IdentifierRequest, AnyContent]
 @Singleton
 class IdentifierActionImpl @Inject() (
   override val authConnector: AuthConnector,
-  idGenerator: IdGenerator,
   playBodyParsers: BodyParsers.Default
 )(implicit override val executionContext: ExecutionContext)
     extends IdentifierAction
@@ -63,24 +58,29 @@ class IdentifierActionImpl @Inject() (
       extraContext = Some(extraContext)
     )
 
-    val warnLogger: (String, Option[Throwable]) => Unit = warnLog(
+    warnLog(
+      secondaryContext = methodLoggingContext,
+      extraContext = Some(extraContext)
+    )
+
+    val errorLogger: (String, Option[Throwable]) => Unit = errorLog(
       secondaryContext = methodLoggingContext,
       extraContext = Some(extraContext)
     )
 
     infoLogger("Attempting to retrieve Correlation ID from request headers")
 
-    val correlationId = request.headers
+    lazy val result = request.headers
       .get(HeaderKey.correlationIdKey)
       .fold {
-        warnLogger("Correlation ID was missing from request headers. Generating new ID for request", None)
-        idGenerator.getCorrelationId
+        errorLogger("Correlation ID was missing from request headers", None)
+        Future.successful(InternalServerError(Json.toJson(MissingCorrelationIdError)))
       } { id =>
         infoLogger("Correlation ID was successfully retrieved from request headers")
-        id
+        block(RequestWithCorrelationId(request, CorrelationId(id)))
       }
 
-    block(RequestWithCorrelationId(request, CorrelationId(correlationId)))
+    result
   }
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
@@ -127,7 +127,7 @@ class IdentifierActionImpl @Inject() (
             Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
           case err =>
             errorLog(methodLoggingContext, idLogString)("An unexpected error occurred", Some(err))
-            Future.successful(InternalServerError(Json.toJson(InternalError)))
+            Future.successful(InternalServerError(Json.toJson(InternalFaultError)))
         }
     }
   }

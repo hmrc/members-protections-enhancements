@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.utils
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, InternalError}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, InternalFaultError}
 import base.UnitBaseSpec
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
@@ -67,10 +67,10 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
   "jsonValidation" -> {
     "[jsonValidation] when provided with non-valid JSON should return an error" in {
       TestObject.jsonValidation[DummyClass]("", correlationId, None) mustBe Left(
-        ErrorWrapper(correlationId, InternalError)
+        ErrorWrapper(correlationId, InternalFaultError)
       )
       TestObject.jsonValidation[DummyClass]("""{"field"}""", correlationId, None) mustBe Left(
-        ErrorWrapper(correlationId, InternalError)
+        ErrorWrapper(correlationId, InternalFaultError)
       )
     }
 
@@ -86,7 +86,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
       )
 
       res mustBe a[Left[_, _]]
-      res mustBe Left(ErrorWrapper(correlationId, InternalError))
+      res mustBe Left(ErrorWrapper(correlationId, InternalFaultError))
     }
 
     "[jsonValidation] when provided with valid JSON should return expected data model" in {
@@ -119,7 +119,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe "BAD_REQUEST"
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "BAD_REQUEST"
     }
 
     "[httpReads] should handle appropriately for an unexpected status code" in {
@@ -132,7 +132,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe "UNEXPECTED_STATUS_ERROR"
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "UNEXPECTED_STATUS_ERROR"
     }
 
     "[httpReads] should handle appropriately for a success" in {
@@ -158,7 +158,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe EmptyDataError.code
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe EmptyDataError.code
     }
 
     "[httpReads] of GET method should handle appropriately for a success with empty json response" in {
@@ -171,7 +171,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe EmptyDataError.code
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe EmptyDataError.code
     }
 
     "[httpReads] of POST method should handle appropriately for a success with no response body" in {
@@ -184,7 +184,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalError)).error.code mustBe "INTERNAL_SERVER_ERROR"
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "INTERNAL_SERVER_ERROR"
     }
   }
 

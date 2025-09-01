@@ -35,7 +35,7 @@ class MpeErrorSpec extends UnitBaseSpec {
     }
 
     "genericWrites should return the expected JSON" in {
-      MpeError.genericWrites.writes(InternalError) mustBe Json.parse(
+      MpeError.genericWrites.writes(InternalFaultError) mustBe Json.parse(
         """
           |{
           | "code": "INTERNAL_SERVER_ERROR",

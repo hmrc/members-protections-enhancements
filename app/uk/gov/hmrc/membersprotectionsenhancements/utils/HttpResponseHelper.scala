@@ -87,7 +87,7 @@ trait HttpResponseHelper extends HttpErrorFunctions { _: Logging =>
             s"Failed to parse response body JSON to expected format with errors: $errors",
             Some(JsResultException(errors))
           )
-          Left(ErrorWrapper(correlationId, InternalError))
+          Left(ErrorWrapper(correlationId, InternalFaultError))
       }
     } catch {
       case ex: JsonParseException =>
@@ -95,13 +95,13 @@ trait HttpResponseHelper extends HttpErrorFunctions { _: Logging =>
           s"Failed to parse response body string to JSON with error: ${ex.getMessage}",
           Some(ex)
         )
-        Left(ErrorWrapper(correlationId, InternalError))
+        Left(ErrorWrapper(correlationId, InternalFaultError))
       case ex: JsonMappingException =>
         errorLogger(
           s"Failed to parse response body string to JSON with error: ${ex.getMessage}",
           Some(ex)
         )
-        Left(ErrorWrapper(correlationId, InternalError))
+        Left(ErrorWrapper(correlationId, InternalFaultError))
     }
   }
 

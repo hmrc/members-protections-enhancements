@@ -92,14 +92,16 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
   "MembersLookUpOrchestrator" -> {
     "checkAndRetrieve" -> {
       "should return the expected result when match person check fails" in new Test {
-        matchPersonMock(Future.successful(Left(ErrorWrapper(correlationId, InternalError.copy(source = MatchPerson)))))
+        matchPersonMock(
+          Future.successful(Left(ErrorWrapper(correlationId, InternalFaultError.copy(source = MatchPerson))))
+        )
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
           correlationId,
-          InternalError.copy(source = MatchPerson)
+          InternalFaultError.copy(source = MatchPerson)
         )
       }
 
