@@ -70,7 +70,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
           stubPost(
             url = npsUrl,
             requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
-            response = aResponse().withStatus(errorStatus)
+            response = aResponse().withStatus(errorStatus).withHeader("correlationId", "X-123")
           )
 
           val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
@@ -95,7 +95,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
         stubPost(
           url = npsUrl,
           requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
-          response = aResponse().withStatus(IM_A_TEAPOT)
+          response = aResponse().withStatus(IM_A_TEAPOT).withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
@@ -114,7 +114,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
         stubPost(
           url = npsUrl,
           requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
-          response = okJson(JsObject.empty.toString())
+          response = okJson(JsObject.empty.toString()).withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
@@ -139,7 +139,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
               | "matchResult": "beep"
               |}
             """.stripMargin
-          )
+          ).withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
@@ -164,7 +164,51 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
               | "matchResult": "MATCH"
               |}
             """.stripMargin
+          ).withHeader("correlationId", "X-123")
+        )
+
+        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+          await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a[Right[_, _]]
+        result.getOrElse(ResponseWrapper(correlationId, `NO MATCH`)).responseData mustBe `MATCH`
+      }
+
+      "[matchPerson] should handle a success response where correlation ID is missing" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = okJson(
+            """
+              |{
+              | "matchResult": "MATCH"
+              |}
+            """.stripMargin
           )
+        )
+
+        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+          await(connector.matchPerson(request).value)
+
+        WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a[Right[_, _]]
+        result.getOrElse(ResponseWrapper(correlationId, `NO MATCH`)).responseData mustBe `MATCH`
+      }
+
+      "[matchPerson] should handle a success response where correlation ID doesn't match request" in new Test {
+        stubPost(
+          url = npsUrl,
+          requestBody = PensionSchemeMemberRequest.matchPersonWrites.writes(request).toString(),
+          response = okJson(
+            """
+              |{
+              | "matchResult": "MATCH"
+              |}
+            """.stripMargin
+          ).withHeader("correlationId", "nonMatching")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
@@ -184,7 +228,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
         s"[retrieveMpe] should return the expected result when NPS returns a recognised error with status: $errorStatus" in new Test {
           stubGet(
             url = npsUrl,
-            response = aResponse().withStatus(errorStatus)
+            response = aResponse().withStatus(errorStatus).withHeader("correlationId", "X-123")
           )
 
           val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -210,7 +254,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
         stubGet(
           url = npsUrl,
-          response = aResponse().withStatus(IM_A_TEAPOT)
+          response = aResponse().withStatus(IM_A_TEAPOT).withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -228,7 +272,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns an unparsable OK response" in new Test {
         stubGet(
           url = npsUrl,
-          response = okJson("")
+          response = okJson("").withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -285,7 +329,7 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
               |{
               |}
             """.stripMargin
-          )
+          ).withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -300,26 +344,38 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
           .code mustBe EmptyDataError.code
       }
 
+      val record: ProtectionRecord = ProtectionRecord(
+        protectionReference = Some("some-id"),
+        `type` = "some-type",
+        status = "some-status",
+        protectedAmount = Some(1),
+        lumpSumAmount = Some(1),
+        lumpSumPercentage = Some(1),
+        enhancementFactor = Some(0.5),
+        pensionCreditLegislation = None
+      )
+
+      val recordJsonString: String =
+        """
+          |{
+          | "protectionRecords": [
+          |   {
+          |     "protectionReference": "some-id",
+          |     "type": "some-type",
+          |     "status": "some-status",
+          |     "protectedAmount": 1,
+          |     "lumpSumAmount": 1,
+          |     "lumpSumPercentage": 1,
+          |     "enhancementFactor": 0.5
+          |   }
+          | ]
+          |}
+        """.stripMargin
+
       "[retrieveMpe] should return the expected result when NPS returns a valid OK response" in new Test {
         stubGet(
           url = npsUrl,
-          response = okJson(
-            """
-              |{
-              | "protectionRecords": [
-              |   {
-              |     "protectionReference": "some-id",
-              |     "type": "some-type",
-              |     "status": "some-status",
-              |     "protectedAmount": 1,
-              |     "lumpSumAmount": 1,
-              |     "lumpSumPercentage": 1,
-              |     "enhancementFactor": 0.5
-              |   }
-              | ]
-              |}
-            """.stripMargin
-          )
+          response = okJson(recordJsonString).withHeader("correlationId", "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -332,16 +388,45 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
           .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
           .responseData
           .protectionRecords
-          .head mustBe ProtectionRecord(
-          protectionReference = Some("some-id"),
-          `type` = "some-type",
-          status = "some-status",
-          protectedAmount = Some(1),
-          lumpSumAmount = Some(1),
-          lumpSumPercentage = Some(1),
-          enhancementFactor = Some(0.5),
-          pensionCreditLegislation = None
+          .head mustBe record
+      }
+
+      "[retrieveMpe] should handle appropriately when correlation ID is missing for a success" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = okJson(recordJsonString)
         )
+
+        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+          await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a[Right[_, _]]
+        result
+          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
+          .responseData
+          .protectionRecords
+          .head mustBe record
+      }
+
+      "[retrieveMpe] should handle appropriately when correlation ID is non-matching for a success" in new Test {
+        stubGet(
+          url = npsUrl,
+          response = okJson(recordJsonString).withHeader("correlationId", "nonMatching")
+        )
+
+        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+          await(connector.retrieveMpe(nino, psaCheckRef).value)
+
+        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
+
+        result mustBe a[Right[_, _]]
+        result
+          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
+          .responseData
+          .protectionRecords
+          .head mustBe record
       }
     }
   }

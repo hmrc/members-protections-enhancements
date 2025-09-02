@@ -54,19 +54,19 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     requestCorrelationId: CorrelationId,
     responseCorrelationId: CorrelationId,
     extraLoggingContext: Option[String]
-  ): CorrelationId =
-    if (requestCorrelationId.value == responseCorrelationId.value) {
-      responseCorrelationId
-    } else {
+  ): CorrelationId = {
+    if (requestCorrelationId.value != responseCorrelationId.value) {
       logger.error(
         secondaryContext = "checkIdsMatch",
         message = "Correlation ID was either missing from response, or did not match ID from request. " +
-          "Reverting to ID from request for consistency in logs. Be aware of potential ID inconsistencies" +
+          "Reverting to ID from request for consistency in logs. Be aware of potential ID inconsistencies. " +
           s"Request C-ID: ${requestCorrelationId.value}, Response C-ID: ${responseCorrelationId.value}",
         extraContext = extraLoggingContext
       )
-      requestCorrelationId
     }
+
+    requestCorrelationId
+  }
 
   def matchPerson(
     request: PensionSchemeMemberRequest
@@ -157,17 +157,19 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .execute[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
     ).bimap(
       err => {
-        warnLogger(err.correlationId)(
+        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId, Some(methodLoggingContext))
+        warnLogger(resultCorrelationId)(
           s"Request to retrieve supplied member's protection record details failed with error: ${err.error}",
           None
         )
-        err.copy(error = err.error.copy(source = RetrieveMpe))
+        err.copy(error = err.error.copy(source = RetrieveMpe), correlationId = resultCorrelationId)
       },
       resp => {
-        infoLogger(resp.correlationId)(
-          "Request to retrieve suppled member's protection record details completed successfully"
+        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId, Some(methodLoggingContext))
+        infoLogger(resultCorrelationId)(
+          "Request to retrieve supplied member's protection record details completed successfully"
         )
-        resp
+        resp.copy(correlationId = resultCorrelationId)
       }
     )
   }

@@ -28,7 +28,7 @@ import uk.gov.hmrc.http._
 trait HttpResponseHelper extends HttpErrorFunctions { _: Logging =>
 
   private def retrieveCorrelationId(response: HttpResponse): CorrelationId =
-    CorrelationId(response.header("correlationId").getOrElse("No correlationId"))
+    CorrelationId(response.header("correlationId").getOrElse("N/A"))
 
   implicit def httpReads[Resp: Reads]: HttpReads[Either[ErrorWrapper, ResponseWrapper[Resp]]] =
     (method: String, url: String, response: HttpResponse) => {
