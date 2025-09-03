@@ -20,127 +20,133 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.core.JsonParseException
 import play.api.libs.json._
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
 import play.api.http.Status._
 import uk.gov.hmrc.http._
 
-trait HttpResponseHelper extends HttpErrorFunctions with Logging {
-  protected val classLoggingContext: String
+trait HttpResponseHelper extends HttpErrorFunctions { _: Logging =>
 
-  private def retrieveCorrelationId(response: HttpResponse): String =
-    response.header("correlationId").getOrElse("No correlationId")
+  private def retrieveCorrelationId(response: HttpResponse): CorrelationId =
+    CorrelationId(response.header("correlationId").getOrElse("N/A"))
 
   implicit def httpReads[Resp: Reads]: HttpReads[Either[ErrorWrapper, ResponseWrapper[Resp]]] =
     (method: String, url: String, response: HttpResponse) => {
-      val methodLoggingContext: String = "[httpReads]"
-      val logContextString = classLoggingContext + methodLoggingContext
-      val correlationId = retrieveCorrelationId(response)
-      logger.info(
-        s"$logContextString - Attempting to read HTTP response for request with method: $method, and url: $url" +
-          s" with correlationId ${retrieveCorrelationId(response)}"
-      )
+      val methodLoggingContext: String = "httpReads"
+      val correlationId: CorrelationId = retrieveCorrelationId(response)
+      val idLogString: String = correlationIdLogString(correlationId)
+
+      val infoLogger: String => Unit = infoLog(methodLoggingContext, idLogString)
+      val warnLogger: (String, Option[Throwable]) => Unit = warnLog(methodLoggingContext, idLogString)
+
+      infoLogger(s"Attempting to read HTTP response with method: $method, and url: $url")
 
       if (response.status == OK) {
-        logger.info(
-          s"$logContextString - HTTP response contained success status. Attempting to parse response body" +
-            s" with correlationId $correlationId"
-        )
         if (method == "GET" && (response.body.isEmpty || response.json == JsObject.empty)) {
+          infoLogger("HTTP response contained success status with an empty body. Converting to EmptyDataError")
           Left(ErrorWrapper(correlationId, EmptyDataError))
         } else {
-          jsonValidation[Resp](response.body, correlationId)
+          infoLogger("HTTP response contained success status with a non-empty body. Attempting to parse response")
+          jsonValidation[Resp](response.body, correlationId, Some(methodLoggingContext))
         }
       } else {
-        logger.warn(
-          s"$logContextString - HTTP response contained error status: ${response.status}. Attempting to handle error" +
-            s" with correlationId $correlationId"
+        warnLogger(
+          s"HTTP response contained error status: ${response.status}. Attempting to handle error",
+          None
         )
         Left(
-          handleErrorResponse(httpMethod = method, url = url, response = response)
+          handleErrorResponse(method, url, response, correlationId, Some(methodLoggingContext))
         )
       }
     }
 
   protected[utils] def jsonValidation[Resp: Reads](
     body: String,
-    correlationId: String
+    correlationId: CorrelationId,
+    extraContext: Option[String]
   ): Either[ErrorWrapper, ResponseWrapper[Resp]] = {
     val methodLoggingContext: String = "[jsonValidation]"
-    val logContextString = classLoggingContext + methodLoggingContext
+
+    val idLogString: String = correlationIdLogString(correlationId)
+
+    val infoLogger: String => Unit = infoLog(methodLoggingContext, idLogString, extraContext)
+    val errorLogger: (String, Option[Throwable]) => Unit = errorLog(methodLoggingContext, idLogString, extraContext)
 
     try {
-      logger.info(s"$logContextString - Attempting to parse response body string to JSON")
+      infoLogger(s"Attempting to parse response body string to JSON")
       val responseJson: JsValue = Json.parse(body)
 
-      logger.info(
-        s"$logContextString - Successfully parsed response body string to JSON. Validating against expected format"
-      )
+      infoLogger("Successfully parsed response body string to JSON. Validating against expected format")
 
       responseJson.validate[Resp] match {
         case JsSuccess(value, _) =>
-          logger.info(s"$logContextString - Successfully parsed response body JSON to expected format")
+          infoLogger("Successfully parsed response body JSON to expected format")
           Right[ErrorWrapper, ResponseWrapper[Resp]](ResponseWrapper(correlationId, value)).withLeft
         case JsError(errors) =>
-          logger.error(
-            message = s"$logContextString - Failed to parse response body JSON to expected format with errors: $errors",
-            error = JsResultException(errors)
+          errorLogger(
+            s"Failed to parse response body JSON to expected format with errors: $errors",
+            Some(JsResultException(errors))
           )
-          Left(ErrorWrapper(correlationId, InternalError))
+          Left(ErrorWrapper(correlationId, InternalFaultError))
       }
     } catch {
       case ex: JsonParseException =>
-        logger.error(
-          message = s"$logContextString - Failed to parse response body string to JSON with error: ${ex.getMessage}",
-          error = ex
+        errorLogger(
+          s"Failed to parse response body string to JSON with error: ${ex.getMessage}",
+          Some(ex)
         )
-        Left(ErrorWrapper(correlationId, InternalError))
+        Left(ErrorWrapper(correlationId, InternalFaultError))
       case ex: JsonMappingException =>
-        logger.error(
-          message = s"$logContextString - Failed to parse response body string to JSON with error: ${ex.getMessage}",
-          error = ex
+        errorLogger(
+          s"Failed to parse response body string to JSON with error: ${ex.getMessage}",
+          Some(ex)
         )
-        Left(ErrorWrapper(correlationId, InternalError))
+        Left(ErrorWrapper(correlationId, InternalFaultError))
     }
   }
 
   protected[utils] def handleErrorResponse(
     httpMethod: String,
     url: String,
-    response: HttpResponse
+    response: HttpResponse,
+    correlationId: CorrelationId,
+    extraContext: Option[String]
   ): ErrorWrapper = {
-    val methodLoggingContext: String = "[handleErrorResponse]"
-    val logContextString = classLoggingContext + methodLoggingContext
-    val correlationId = retrieveCorrelationId(response)
+    val methodLoggingContext: String = "handleErrorResponse"
+
+    val idLogString: String = correlationIdLogString(correlationId)
+    val warnLogger: (String, Option[Throwable]) => Unit = warnLog(methodLoggingContext, idLogString, extraContext)
+    val errorLogger: (String, Option[Throwable]) => Unit = errorLog(methodLoggingContext, idLogString, extraContext)
+
     response.status match {
       case BAD_REQUEST =>
         val message = badRequestMessage(httpMethod, url, response.body)
-        logger.warn(s"$logContextString[BAD_REQUEST] - $message with correlationId $correlationId")
+        warnLogger(message, None)
         ErrorWrapper(correlationId, MpeError("BAD_REQUEST", message))
       case FORBIDDEN =>
         val message = upstreamResponseMessage(httpMethod, url, FORBIDDEN, response.body)
-        logger.warn(s"$logContextString - $message with correlationId $correlationId")
+        warnLogger(message, None)
         ErrorWrapper(correlationId, MpeError("FORBIDDEN", message))
       case NOT_FOUND =>
         val message = notFoundMessage(httpMethod, url, response.body)
-        logger.warn(s"$logContextString[NOT_FOUND] - $message with correlationId $correlationId")
+        warnLogger(message, None)
         ErrorWrapper(correlationId, MpeError("NOT_FOUND", message))
       case UNPROCESSABLE_ENTITY if httpMethod == "GET" =>
         val message = upstreamResponseMessage(httpMethod, url, UNPROCESSABLE_ENTITY, response.body)
-        logger.warn(s"$logContextString - $message with correlationId $correlationId converting to NOT_FOUND status")
+        warnLogger(message, None)
         ErrorWrapper(correlationId, MpeError("NOT_FOUND", message))
       case INTERNAL_SERVER_ERROR =>
         val message = upstreamResponseMessage(httpMethod, url, INTERNAL_SERVER_ERROR, response.body)
-        logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
+        warnLogger(message, None)
         ErrorWrapper(correlationId, MpeError("INTERNAL_ERROR", message))
       case SERVICE_UNAVAILABLE =>
         val message = upstreamResponseMessage(httpMethod, url, SERVICE_UNAVAILABLE, response.body)
-        logger.warn(s"$logContextString - $message with correlationId ${retrieveCorrelationId(response)}")
+        warnLogger(message, None)
         ErrorWrapper(correlationId, MpeError("SERVICE_UNAVAILABLE", message))
       case status =>
-        logger.error(
-          message =
-            s"$logContextString - Received an unexpected error status: $status with correlationId ${retrieveCorrelationId(response)}",
-          error = new UnrecognisedHttpResponseException(httpMethod, url, response)
+        errorLogger(
+          s"Received an unexpected error status: $status",
+          Some(new UnrecognisedHttpResponseException(httpMethod, url, response))
         )
         ErrorWrapper(correlationId, UnexpectedStatusError)
     }

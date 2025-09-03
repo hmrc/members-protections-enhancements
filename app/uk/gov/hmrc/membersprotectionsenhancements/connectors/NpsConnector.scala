@@ -23,7 +23,7 @@ import cats.data.EitherT
 import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.{
@@ -31,7 +31,7 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.response.{
   ProtectionRecordDetails,
   ResponseWrapper
 }
-import uk.gov.hmrc.membersprotectionsenhancements.utils.HttpResponseHelper
+import uk.gov.hmrc.membersprotectionsenhancements.utils.{HttpResponseHelper, Logging}
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MatchPerson, RetrieveMpe}
 
 import scala.concurrent.ExecutionContext
@@ -41,9 +41,7 @@ import javax.inject.{Inject, Singleton}
 import java.net.URI
 
 @Singleton
-class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper {
-  protected val classLoggingContext: String = "NpsConnector"
-
+class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) extends HttpResponseHelper with Logging {
   private def authorization(): String = {
     val clientId = config.npsClientId
     val secret = config.npsSecret
@@ -52,25 +50,54 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
     s"Basic $encoded"
   }
 
+  private def checkIdsMatch(
+    requestCorrelationId: CorrelationId,
+    responseCorrelationId: CorrelationId,
+    extraLoggingContext: Option[String]
+  ): CorrelationId = {
+    if (requestCorrelationId.value != responseCorrelationId.value) {
+      logger.error(
+        secondaryContext = "checkIdsMatch",
+        message = "Correlation ID was either missing from response, or did not match ID from request. " +
+          "Reverting to ID from request for consistency in logs. Be aware of potential ID inconsistencies. " +
+          s"Request C-ID: ${requestCorrelationId.value}, Response C-ID: ${responseCorrelationId.value}",
+        extraContext = extraLoggingContext
+      )
+    }
+
+    requestCorrelationId
+  }
+
   def matchPerson(
     request: PensionSchemeMemberRequest
   )(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext,
-    correlationId: String
+    correlationId: CorrelationId
   ): ConnectorResult[MatchPersonResponse] = {
-    val methodLoggingContext: String = "matchPerson"
-    val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
     val matchIndividualAccountUrl: String = config.matchUrl
 
-    logger.info(s"$fullContext - Received request to check for a matching individual with correlationId $correlationId")
+    val methodLoggingContext: String = "matchPerson"
+    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId = correlationId)
+
+    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
+      secondaryContext = methodLoggingContext,
+      dataLog = idLogString(correlationId)
+    )
+
+    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
+      secondaryContext = methodLoggingContext,
+      dataLog = idLogString(correlationId)
+    )
+
+    infoLogger(correlationId)("Attempting to match supplied member details")
 
     EitherT(
       http
         .post(URI.create(matchIndividualAccountUrl).toURL)
         .withBody(Json.toJson(request)(matchPersonWrites))
         .setHeader(
-          (correlationIdKey, correlationId),
+          (correlationIdKey, correlationId.value),
           (govUkOriginatorIdKey, config.matchPersonGovUkOriginatorId),
           (AUTHORIZATION, authorization()),
           (CONTENT_TYPE, ContentTypes.JSON),
@@ -79,17 +106,19 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .execute[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
     ).bimap(
       err => {
-        logger.warn(
-          s"$fullContext - Request to check for a matching individual" +
-            s" with correlationId ${err.correlationId} failed with error: ${err.error}"
+        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId, Some(methodLoggingContext))
+        warnLogger(resultCorrelationId)(
+          s"Match attempt failed to complete with error: ${err.error}",
+          None
         )
-        err.copy(error = err.error.copy(source = MatchPerson))
+        err.copy(error = err.error.copy(source = MatchPerson), correlationId = resultCorrelationId)
       },
       resp => {
-        logger.info(
-          s"$fullContext - Request to check for a matching individual completed successfully with correlationId ${resp.correlationId}"
+        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId, Some(methodLoggingContext))
+        infoLogger(resultCorrelationId)(
+          s"Request to match supplied member details completed successfully with result: ${resp.responseData}"
         )
-        resp
+        resp.copy(correlationId = resultCorrelationId)
       }
     )
   }
@@ -97,22 +126,30 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
   def retrieveMpe(nino: String, psaCheckRef: String)(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext,
-    correlationId: String
+    correlationId: CorrelationId
   ): ConnectorResult[ProtectionRecordDetails] = {
-    val methodLoggingContext: String = "retrieve"
-    val fullContext: String = s"[$classLoggingContext][$methodLoggingContext]"
-
     val retrieveUrl = s"${config.retrieveUrl}/$nino/admin-reference/$psaCheckRef/lookup"
 
-    logger.info(
-      s"$fullContext - Received request to retrieve member's protections and enhancements with correlationId $correlationId"
+    val methodLoggingContext: String = "retrieveMpe"
+    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId = correlationId)
+
+    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
+      secondaryContext = methodLoggingContext,
+      dataLog = idLogString(correlationId)
     )
+
+    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
+      secondaryContext = methodLoggingContext,
+      dataLog = idLogString(correlationId)
+    )
+
+    infoLogger(correlationId)("Attempting to retrieve supplied member's protection record details")
 
     EitherT(
       http
         .get(URI.create(retrieveUrl).toURL)
         .setHeader(
-          (correlationIdKey, correlationId),
+          (correlationIdKey, correlationId.value),
           (govUkOriginatorIdKey, config.retrieveMpeGovUkOriginatorId),
           (AUTHORIZATION, authorization()),
           (ENVIRONMENT, config.npsEnv)
@@ -120,17 +157,19 @@ class NpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2) ext
         .execute[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
     ).bimap(
       err => {
-        logger.warn(
-          s"$fullContext - Request to retrieve protections and enhancements" +
-            s" with correlationId ${err.correlationId} failed with error: ${err.error}"
+        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId, Some(methodLoggingContext))
+        warnLogger(resultCorrelationId)(
+          s"Request to retrieve supplied member's protection record details failed with error: ${err.error}",
+          None
         )
-        err.copy(error = err.error.copy(source = RetrieveMpe))
+        err.copy(error = err.error.copy(source = RetrieveMpe), correlationId = resultCorrelationId)
       },
       resp => {
-        logger.info(
-          s"$fullContext - Request to retrieve protections and enhancements completed successfully with correlationId ${resp.correlationId}"
+        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId, Some(methodLoggingContext))
+        infoLogger(resultCorrelationId)(
+          "Request to retrieve supplied member's protection record details completed successfully"
         )
-        resp
+        resp.copy(correlationId = resultCorrelationId)
       }
     )
   }

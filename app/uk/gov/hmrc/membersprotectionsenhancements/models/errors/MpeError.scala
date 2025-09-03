@@ -45,10 +45,16 @@ object InvalidBearerTokenError
       message = "Bearer token is missing or not authorized"
     )
 
-object InternalError
+object InternalFaultError
     extends MpeError(
       code = "INTERNAL_SERVER_ERROR",
       message = "An internal server error occurred"
+    )
+
+object MissingCorrelationIdError
+    extends MpeError(
+      code = "MISSING_CORRELATION_ID",
+      message = "CorrelationId header could not be found in request"
     )
 
 object NoMatchError

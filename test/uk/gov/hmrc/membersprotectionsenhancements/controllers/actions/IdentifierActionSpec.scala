@@ -17,17 +17,20 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 
 import play.api.test.{FakeRequest, StubPlayBodyParsersFactory}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InvalidBearerTokenError, UnauthorisedError}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
+  InternalFaultError,
+  InvalidBearerTokenError,
+  UnauthorisedError
+}
 import play.api.mvc.{Action, AnyContent, BodyParsers}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserDetails
-import uk.gov.hmrc.membersprotectionsenhancements.config.{AppConfig, Constants}
+import uk.gov.hmrc.membersprotectionsenhancements.config.Constants
 import play.api.mvc.Results.Ok
 import play.api.test.Helpers._
 import org.mockito.Mockito.when
 import base.UnitBaseSpec
 import uk.gov.hmrc.auth.core._
-import play.api.Application
 import play.api.libs.json.Json
 import uk.gov.hmrc.auth.core.syntax.retrieved.authSyntaxForRetrieved
 import org.mockito.ArgumentMatchers.any
@@ -38,40 +41,41 @@ import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.Identifie
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthenticatedIdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory {
+class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory {
+  def authAction = new IdentifierActionImpl(
+    authConnector = mockAuthConnector,
+    playBodyParsers = bodyParsers
+  )(ExecutionContext.global)
 
-  def authAction(appConfig: AppConfig) =
-    new AuthenticatedIdentifierAction(mockAuthConnector, appConfig, bodyParsers)(ExecutionContext.global)
-
-  class Handler(appConfig: AppConfig) {
-    def run: Action[AnyContent] = authAction(appConfig) { request =>
+  class Handler {
+    def run: Action[AnyContent] = authAction { request =>
       request match {
-        case AdministratorRequest(UserDetails(psrUserType, psrUserId, userId, affinityGroup), _) =>
+        case AdministratorRequest(_, correlationId, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
           Ok(
             Json.obj(
               "psrUserType" -> psrUserType,
               "userId" -> userId,
               "psaId" -> psrUserId,
-              "affinityGroup" -> affinityGroup
+              "affinityGroup" -> affinityGroup,
+              "correlationId" -> correlationId.value
             )
           )
 
-        case PractitionerRequest(UserDetails(psrUserType, psrUserId, userId, affinityGroup), _) =>
+        case PractitionerRequest(_, correlationId, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
           Ok(
             Json.obj(
               "psrUserType" -> psrUserType,
               "userId" -> userId,
               "pspId" -> psrUserId,
-              "affinityGroup" -> affinityGroup
+              "affinityGroup" -> affinityGroup,
+              "correlationId" -> correlationId.value
             )
           )
       }
     }
   }
 
-  def appConfig(implicit app: Application): AppConfig = injected[AppConfig]
-
-  def handler(implicit app: Application): Handler = new Handler(appConfig)
+  def handler: Handler = new Handler()
 
   def authResult(
     affinityGroup: Option[AffinityGroup],
@@ -80,11 +84,17 @@ class AuthenticatedIdentifierActionSpec extends UnitBaseSpec with StubPlayBodyPa
   ): Option[String] ~ Option[AffinityGroup] ~ Enrolments =
     internalId.and(affinityGroup).and(Enrolments(enrolments.toSet))
 
-  val psaEnrolment: Enrolment =
-    Enrolment(Constants.psaEnrolmentKey, Seq(EnrolmentIdentifier(Constants.psaId, "A2100001")), "Activated")
+  val psaEnrolment: Enrolment = Enrolment(
+    key = Constants.psaEnrolmentKey,
+    identifiers = Seq(EnrolmentIdentifier(key = Constants.psaId, value = "A2100001")),
+    state = "Activated"
+  )
 
-  val pspEnrolment: Enrolment =
-    Enrolment(Constants.pspEnrolmentKey, Seq(EnrolmentIdentifier(Constants.pspId, "21000002")), "Activated")
+  val pspEnrolment: Enrolment = Enrolment(
+    key = Constants.pspEnrolmentKey,
+    identifiers = Seq(EnrolmentIdentifier(key = Constants.pspId, value = "21000002")),
+    state = "Activated"
+  )
 
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
   private val bodyParsers: BodyParsers.Default = mock[BodyParsers.Default]
@@ -97,55 +107,84 @@ class AuthenticatedIdentifierActionSpec extends UnitBaseSpec with StubPlayBodyPa
       .thenReturn(value)
 
   "AuthenticateIdentifierAction" - {
+    val fakeRequestWithCorrelationId = FakeRequest().withHeaders("correlationId" -> "x-id")
+
     "return an unauthorised result" - {
-      "when authorise fails to match predicate" in runningApplication { implicit app =>
+      "when any unhandled exception occurs" in runningApplication { _ =>
+        setAuthValue(Future.failed(new RuntimeException("Authorise predicate fails")))
+        val result = handler.run(fakeRequestWithCorrelationId)
+        redirectLocation(result) mustBe None
+        contentAsJson(result) mustBe Json.toJson(InternalFaultError)
+      }
+
+      "when authorise fails to match predicate" in runningApplication { _ =>
         setAuthValue(Future.failed(new AuthorisationException("Authorise predicate fails") {}))
-        val result = handler.run(FakeRequest())
+        val result = handler.run(fakeRequestWithCorrelationId)
         redirectLocation(result) mustBe None
         contentAsJson(result) mustBe Json.toJson(UnauthorisedError)
       }
 
-      "when authorise fails due to invalid or no bearer token" in runningApplication { implicit app =>
+      "when authorise fails due to invalid or no bearer token" in runningApplication { _ =>
         setAuthValue(Future.failed(new MissingBearerToken("No Bearer token") {}))
-        val result = handler.run(FakeRequest())
+        val result = handler.run(fakeRequestWithCorrelationId)
         redirectLocation(result) mustBe None
         contentAsJson(result) mustBe Json.toJson(InvalidBearerTokenError)
       }
 
-      "when user does not have an Internal Id" in runningApplication { implicit app =>
+      "when user does not have an Internal Id" in runningApplication { _ =>
         setAuthValue(authResult(Some(AffinityGroup.Individual), None, psaEnrolment))
-        val result = handler.run(FakeRequest())
+        val result = handler.run(fakeRequestWithCorrelationId)
         redirectLocation(result) mustBe None
       }
 
-      "when user does not have psa or psp enrolment" in runningApplication { implicit app =>
+      "when user does not have an AffinityGroup" in runningApplication { _ =>
+        setAuthValue(authResult(None, Some("id"), psaEnrolment))
+        val result = handler.run(fakeRequestWithCorrelationId)
+        redirectLocation(result) mustBe None
+      }
+
+      "when user does not have psa or psp enrolment" in runningApplication { _ =>
         setAuthValue(authResult(Some(AffinityGroup.Individual), Some("internalId")))
-        val result = handler.run(FakeRequest())
+        val result = handler.run(fakeRequestWithCorrelationId)
         redirectLocation(result) mustBe None
       }
     }
 
     "return an IdentifierRequest" - {
-      "User has a psa enrolment" in runningApplication { implicit app =>
+      "User has a psa enrolment" in runningApplication { _ =>
         setAuthValue(authResult(Some(AffinityGroup.Individual), Some("internalId"), psaEnrolment))
 
-        val result = handler.run(FakeRequest())
+        val result = handler.run(fakeRequestWithCorrelationId)
 
         status(result) mustBe OK
         (contentAsJson(result) \ "psaId").asOpt[String] mustBe Some("A2100001")
         (contentAsJson(result) \ "pspId").asOpt[String] mustBe None
         (contentAsJson(result) \ "userId").asOpt[String] mustBe Some("internalId")
+        (contentAsJson(result) \ "correlationId").asOpt[String] mustBe Some("x-id")
       }
 
-      "User has a psp enrolment" in runningApplication { implicit app =>
+      "User has a psp enrolment" in runningApplication { _ =>
         setAuthValue(authResult(Some(AffinityGroup.Individual), Some("internalId"), pspEnrolment))
 
-        val result = handler.run(FakeRequest())
+        val result = handler.run(fakeRequestWithCorrelationId)
 
         status(result) mustBe OK
         (contentAsJson(result) \ "psaId").asOpt[String] mustBe None
         (contentAsJson(result) \ "pspId").asOpt[String] mustBe Some("21000002")
         (contentAsJson(result) \ "userId").asOpt[String] mustBe Some("internalId")
+        (contentAsJson(result) \ "correlationId").asOpt[String] mustBe Some("x-id")
+      }
+
+      "must throw an error when correlationId is missing from request headers" in runningApplication { _ =>
+        setAuthValue(authResult(Some(AffinityGroup.Individual), Some("internalId"), pspEnrolment))
+
+        val result = handler.run(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        (contentAsJson(result) \ "code").asOpt[String] mustBe Some("MISSING_CORRELATION_ID")
+        (contentAsJson(result) \ "message").asOpt[String] mustBe Some(
+          "CorrelationId header could not be found in request"
+        )
       }
     }
   }

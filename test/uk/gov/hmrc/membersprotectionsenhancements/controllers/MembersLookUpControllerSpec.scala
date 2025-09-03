@@ -132,8 +132,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         "urls.npsContext" -> ""
       )
       .overrides(
-        bind[IdentifierAction].toInstance(fakePsaIdentifierAction),
-        bind[DataRetrievalAction].toInstance(new FakeDataRetrievalAction)
+        bind[IdentifierAction].toInstance(fakePsaIdentifierAction)
       )
       .build()
 

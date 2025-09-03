@@ -16,4 +16,6 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
-case class ErrorWrapper(correlationId: String, error: MpeError)
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
+
+case class ErrorWrapper(correlationId: CorrelationId, error: MpeError)
