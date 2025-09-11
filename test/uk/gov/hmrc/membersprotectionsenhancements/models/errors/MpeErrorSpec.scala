@@ -22,13 +22,12 @@ import play.api.libs.json.Json
 class MpeErrorSpec extends UnitBaseSpec {
   "MpeError" -> {
     "writes should return the expected JSON" in {
-      MpeError.writes.writes(MpeError("CODE", "Message", reasons = Some(Seq("reason")))) mustBe Json.parse(
+      MpeError.writes.writes(MpeError("CODE", "Message")) mustBe Json.parse(
         """
           |{
           | "code": "CODE",
           | "message": "Message",
-          | "source": "Internal",
-          | "reasons": ["reason"]
+          | "source": "Internal"
           |}
         """.stripMargin
       )

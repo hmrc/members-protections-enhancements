@@ -61,11 +61,10 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError(
-              "BAD_REQUEST",
-              "Invalid request data",
-              Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
             )
           )
         )
@@ -84,11 +83,10 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError(
-              "BAD_REQUEST",
-              "Invalid request data",
-              Some(List("Missing or invalid firstName", "Missing or invalid lastName"))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
             )
           )
         )
@@ -107,7 +105,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
         Left(
           ErrorWrapper(
             correlationId,
-            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid dateOfBirth")))
+            MpeError("BAD_REQUEST", "Invalid request data")
           )
         )
     }
@@ -125,8 +123,11 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino")))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
+              )
           )
         )
     }
@@ -144,8 +145,11 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid nino")))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
+            )
           )
         )
     }
@@ -163,8 +167,11 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef")))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
+            )
           )
         )
     }
@@ -182,8 +189,11 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError("BAD_REQUEST", "Invalid request data", Some(List("Missing or invalid psaCheckRef")))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
+            )
           )
         )
     }
@@ -201,11 +211,10 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
       validator.validate(invalidJson) mustBe
         Left(
           ErrorWrapper(
-            correlationId,
-            MpeError(
-              "BAD_REQUEST",
-              "Invalid request data",
-              Some(List("Missing or invalid dateOfBirth", "Missing or invalid nino"))
+            correlationId = correlationId,
+            error = MpeError(
+              code = "BAD_REQUEST",
+              message = "Invalid request data"
             )
           )
         )

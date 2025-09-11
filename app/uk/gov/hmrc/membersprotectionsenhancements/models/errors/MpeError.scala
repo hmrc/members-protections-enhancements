@@ -21,7 +21,6 @@ import play.api.libs.json.{Json, OWrites}
 sealed case class MpeError(
   code: String,
   message: String,
-  reasons: Option[Seq[String]] = None,
   source: ErrorSource = Internal
 )
 

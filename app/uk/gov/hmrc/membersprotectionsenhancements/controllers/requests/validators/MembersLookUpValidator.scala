@@ -18,12 +18,11 @@ package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.validato
 
 import play.api.libs.json._
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
-
-import scala.concurrent.ExecutionContext
+import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) extends Logging {
@@ -43,14 +42,13 @@ class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) exten
         infoLogger("Request body validation completed successfully")
         Right(value)
       case JsError(errors) =>
-        val r = errors.map(t => t._2.foldLeft("")((x, y) => x + y.message))
-
-        logger.error(
+        logger.errorWithException(
           secondaryContext = methodLoggingContext,
-          message = s"Request body validation failed with errors: $r",
+          message = "Request body validation failed",
+          ex = JsResultException(errors),
           dataLog = idLogString
         )
-        Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq))))
+        Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data")))
     }
   }
 }
