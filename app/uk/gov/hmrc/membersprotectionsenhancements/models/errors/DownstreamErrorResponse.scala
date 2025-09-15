@@ -1,13 +1,21 @@
 package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Reads, __}
+import play.api.libs.json.{JsPath, Json, Reads, __}
 
 case class DownstreamErrorResponse(code: String,
-                                   reason: String,
-                                   errors: Seq[DownstreamErrorResponse] = Nil)
+                                   message: String,
+                                   errors: Option[Seq[DownstreamErrorResponse]] = None) {
+  override def toString: String = if (this == DownstreamErrorResponse.empty) {
+    "N/A"
+  } else {
+    Json.toJson(this)(Json.writes[DownstreamErrorResponse]).toString()
+  }
+}
 
 object DownstreamErrorResponse {
+  val empty: DownstreamErrorResponse = DownstreamErrorResponse("N/A", "N/A")
+
   val reasonCodeReads: Reads[DownstreamErrorResponse] = (
     (__ \ "reason").read[String] and
       (__ \ "code").read[String]
@@ -18,25 +26,44 @@ object DownstreamErrorResponse {
       (__ \ "reason").read[String]
     )((reason, code) => DownstreamErrorResponse(reason, code))
 
+  private val unprocessableEntitySeqReads: Reads[Seq[DownstreamErrorResponse]] =
+    Reads.seq[DownstreamErrorResponse](reasonCodeReads)
+
   private val internalErrorSeqReads: Reads[Seq[DownstreamErrorResponse]] =
     Reads.seq[DownstreamErrorResponse](typeReasonReads)
 
   private val badRequestSeqReads: Reads[Seq[DownstreamErrorResponse]] =
    internalErrorSeqReads orElse Reads.seq[DownstreamErrorResponse](reasonCodeReads)
 
-  private def multipleErrorReads(seqReads: Reads[Seq[DownstreamErrorResponse]]): Reads[DownstreamErrorResponse] = {
-    (__ \ "response" \ "failures").read[Seq[DownstreamErrorResponse]](seqReads).map {
-      case head :: Nil => DownstreamErrorResponse(head.code, head.reason)
+  private def multipleErrorReads(path: JsPath,
+                                 seqReads: Reads[Seq[DownstreamErrorResponse]]): Reads[DownstreamErrorResponse] = {
+    path.read[Seq[DownstreamErrorResponse]](seqReads).map {
+      case Nil => DownstreamErrorResponse(
+        code = "EMPTY_ERRORS_ARRAY",
+        message = "Downstream service returned an empty array of errors"
+      )
+      case head :: Nil => DownstreamErrorResponse(head.code, head.message)
       case errs => DownstreamErrorResponse(
         code = "MULTIPLE_ERRORS",
-        reason = "An array of multiple errors was returned from the downstream service",
-        errors = errs
+        message = "An array of multiple errors was returned from the downstream service",
+        errors = Some(errs)
       )
     }
   }
 
-  val badRequestErrorReads: Reads[DownstreamErrorResponse] = multipleErrorReads(badRequestSeqReads)
+  val badRequestErrorReads: Reads[DownstreamErrorResponse] = multipleErrorReads(
+    path = __ \ "response" \ "failures",
+    seqReads = badRequestSeqReads
+  )
 
-  val internalErrorReads: Reads[DownstreamErrorResponse] = multipleErrorReads(internalErrorSeqReads)
+  val unprocessableEntityErrorReads: Reads[DownstreamErrorResponse] = multipleErrorReads(
+    __ \ "failures",
+    unprocessableEntitySeqReads
+  )
+
+  val internalErrorReads: Reads[DownstreamErrorResponse] = multipleErrorReads(
+    path = __ \ "response" \ "failures",
+    seqReads = internalErrorSeqReads
+  )
 }
 

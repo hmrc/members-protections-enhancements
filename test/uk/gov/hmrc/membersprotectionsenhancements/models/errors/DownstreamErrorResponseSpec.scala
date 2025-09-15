@@ -2,9 +2,55 @@ package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
 import base.UnitBaseSpec
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.DownstreamErrorResponse.{badRequestErrorReads, internalErrorReads, reasonCodeReads}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.DownstreamErrorResponse.{badRequestErrorReads, internalErrorReads, reasonCodeReads, unprocessableEntityErrorReads}
 
 class DownstreamErrorResponseSpec extends UnitBaseSpec {
+  "toString" - {
+    "should write an empty downstream error to an empty string" in {
+      DownstreamErrorResponse.empty.toString mustBe "N/A"
+    }
+
+    "should write a non empty downstream error to JSON string" in {
+      val errsString: String = DownstreamErrorResponse(
+        code = "A CODE",
+        message = "A REASON"
+      ).toString
+
+      Json.parse(errsString) mustBe Json.parse(
+        """
+          |{
+          | "code": "A CODE",
+          | "reason": "A REASON"
+          |}
+        """.stripMargin
+      )
+    }
+
+    "should write multiple non empty downstream errors to JSON string" in {
+      val errsString: String = DownstreamErrorResponse(
+        code = "A CODE",
+        message = "A REASON",
+        errors = Some(Seq(DownstreamErrorResponse(code = "ANOTHER CODE", message = "ANOTHER REASON")))
+      ).toString
+
+      Json.parse(errsString) mustBe Json.parse(
+        """
+          |{
+          | "code": "A CODE",
+          | "reason": "A REASON",
+          | "errors": [
+          |   {
+          |     "code": "ANOTHER CODE",
+          |     "reason": "ANOTHER REASON"
+          |   }
+          | ]
+          |
+          |}
+        """.stripMargin
+      )
+    }
+  }
+
   "reasonCodeReads" - {
     "should read from valid JSON" in {
       val json =
@@ -34,6 +80,24 @@ class DownstreamErrorResponseSpec extends UnitBaseSpec {
   }
 
   "badRequestErrorReads" - {
+    "should read from an empty array of errors" in {
+      val json =
+        """
+          |{
+          | "response": {
+          |   "failures": []
+          | }
+          |}
+        """.stripMargin
+
+      val result = Json.parse(json).validate[DownstreamErrorResponse](badRequestErrorReads)
+      result mustBe a [JsSuccess[_]]
+      result.get mustBe DownstreamErrorResponse(
+        code = "EMPTY_ERRORS_ARRAY",
+        message = "Downstream service returned an empty array of errors"
+      )
+    }
+
     "should read from valid JSON in reason-code format" in {
       val json =
         """
@@ -48,8 +112,6 @@ class DownstreamErrorResponseSpec extends UnitBaseSpec {
           | }
           |}
         """.stripMargin
-
-      println((Json.parse(json) \ "response" \ "failures").validate[Seq[JsValue]])
 
       val result = Json.parse(json).validate[DownstreamErrorResponse](badRequestErrorReads)
       result mustBe a [JsSuccess[_]]
@@ -99,17 +161,17 @@ class DownstreamErrorResponseSpec extends UnitBaseSpec {
       result mustBe a [JsSuccess[_]]
       result.get mustBe DownstreamErrorResponse(
         code = "MULTIPLE_ERRORS",
-        reason = "An array of multiple errors was returned from the downstream service",
-        errors = Seq(
+        message = "An array of multiple errors was returned from the downstream service",
+        errors = Some(Seq(
           DownstreamErrorResponse(
             code = "a type",
-            reason = "a reason"
+            message = "a reason"
           ),
           DownstreamErrorResponse(
             code = "another type",
-            reason = "another reason"
+            message = "another reason"
           )
-        )
+        ))
       )
     }
 
@@ -136,17 +198,17 @@ class DownstreamErrorResponseSpec extends UnitBaseSpec {
       result mustBe a [JsSuccess[_]]
       result.get mustBe DownstreamErrorResponse(
         code = "MULTIPLE_ERRORS",
-        reason = "An array of multiple errors was returned from the downstream service",
-        errors = Seq(
+        message = "An array of multiple errors was returned from the downstream service",
+        errors = Some(Seq(
           DownstreamErrorResponse(
             code = "a type",
-            reason = "a reason"
+            message = "a reason"
           ),
           DownstreamErrorResponse(
             code = "another type",
-            reason = "another reason"
+            message = "another reason"
           )
-        )
+        ))
       )
     }
 
@@ -186,7 +248,108 @@ class DownstreamErrorResponseSpec extends UnitBaseSpec {
     }
   }
 
+  "unprocessableEntityErrorReads" - {
+    "should read from an empty array of errors" in {
+      val json =
+        """
+          |{
+          | "failures": []
+          |}
+        """.stripMargin
+
+      val result = Json.parse(json).validate[DownstreamErrorResponse](unprocessableEntityErrorReads)
+      result mustBe a [JsSuccess[_]]
+      result.get mustBe DownstreamErrorResponse(
+        code = "EMPTY_ERRORS_ARRAY",
+        message = "Downstream service returned an empty array of errors"
+      )
+    }
+
+    "should read from valid JSON" in {
+      val json =
+        """
+          |{
+          | "failures": [
+          |   {
+          |     "reason": "a type",
+          |     "code": "a reason"
+          |   }
+          | ]
+          |}
+        """.stripMargin
+
+      val result = Json.parse(json).validate[DownstreamErrorResponse](unprocessableEntityErrorReads)
+      result mustBe a [JsSuccess[_]]
+      result.get mustBe DownstreamErrorResponse("a type", "a reason")
+    }
+
+    "should read from valid JSON when multiple errors exist" in {
+      val json =
+        """
+          |{
+          | "failures": [
+          |   {
+          |     "reason": "a type",
+          |     "code": "a reason"
+          |   },
+          |   {
+          |     "reason": "another type",
+          |     "code": "another reason"
+          |   }
+          | ]
+          |}
+        """.stripMargin
+
+      val result = Json.parse(json).validate[DownstreamErrorResponse](unprocessableEntityErrorReads)
+      result mustBe a [JsSuccess[_]]
+      result.get mustBe DownstreamErrorResponse(
+        code = "MULTIPLE_ERRORS",
+        message = "An array of multiple errors was returned from the downstream service",
+        errors = Some(Seq(
+          DownstreamErrorResponse(
+            code = "a type",
+            message = "a reason"
+          ),
+          DownstreamErrorResponse(
+            code = "another type",
+            message = "another reason"
+          )
+        ))
+      )
+    }
+
+    "should not read from invalid JSON" in {
+      val json =
+        """
+          |{
+          | "failures": 1
+          |}
+        """.stripMargin
+
+      val result = Json.parse(json).validate[DownstreamErrorResponse](unprocessableEntityErrorReads)
+      result mustBe a [JsError]
+    }
+  }
+
   "internalErrorReads" - {
+    "should read from an empty array of errors" in {
+      val json =
+        """
+          |{
+          | "response": {
+          |   "failures": []
+          | }
+          |}
+        """.stripMargin
+
+      val result = Json.parse(json).validate[DownstreamErrorResponse](internalErrorReads)
+      result mustBe a [JsSuccess[_]]
+      result.get mustBe DownstreamErrorResponse(
+        code = "EMPTY_ERRORS_ARRAY",
+        message = "Downstream service returned an empty array of errors"
+      )
+    }
+
     "should read from valid JSON" in {
       val json =
         """
@@ -230,18 +393,18 @@ class DownstreamErrorResponseSpec extends UnitBaseSpec {
       result mustBe a [JsSuccess[_]]
       result.get mustBe DownstreamErrorResponse(
         code = "MULTIPLE_ERRORS",
-        reason = "An array of multiple errors was returned from the downstream service",
-        errors = Seq(
+        message = "An array of multiple errors was returned from the downstream service",
+        errors = Some(Seq(
           DownstreamErrorResponse(
             code = "a type",
-            reason = "a reason"
+            message = "a reason"
           ),
           DownstreamErrorResponse(
             code = "another type",
-            reason = "another reason"
+            message = "another reason"
           )
         )
-      )
+      ))
     }
 
     "should not read from invalid JSON" in {
