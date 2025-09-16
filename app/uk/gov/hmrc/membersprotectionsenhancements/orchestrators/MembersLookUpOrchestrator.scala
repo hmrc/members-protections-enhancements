@@ -17,7 +17,11 @@
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
 import cats.data.EitherT
-import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, NpsConnector}
+import uk.gov.hmrc.membersprotectionsenhancements.connectors.{
+  ConnectorResult,
+  MatchPersonNpsConnector,
+  RetrieveMpeNpsConnector
+}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import uk.gov.hmrc.membersprotectionsenhancements.models.response._
@@ -29,7 +33,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit val ec: ExecutionContext)
+class MembersLookUpOrchestrator @Inject() (
+  matchPersonConnector: MatchPersonNpsConnector,
+  retrieveMpeConnector: RetrieveMpeNpsConnector
+)(implicit val ec: ExecutionContext)
     extends Logging {
 
   def checkAndRetrieve(
@@ -54,7 +61,7 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit 
 
     infoLogger(correlationId)("Attempting to match supplied member details")
 
-    val result: ConnectorResult[ProtectionRecordDetails] = npsConnector.matchPerson(request).flatMap {
+    val result: ConnectorResult[ProtectionRecordDetails] = matchPersonConnector.matchPerson(request).flatMap {
       case ResponseWrapper(responseCorrelationId, MATCH) =>
         infoLogger(responseCorrelationId)("Successfully matched supplied member details")
         doRetrieval(request, Some(methodLoggingContext))(hc, responseCorrelationId)
@@ -94,7 +101,7 @@ class MembersLookUpOrchestrator @Inject() (npsConnector: NpsConnector)(implicit 
 
     retrieveInfoLogger(correlationId)("Attempting to retrieve member's protection record details")
 
-    npsConnector.retrieveMpe(request.identifier, request.psaCheckRef).subflatMap {
+    retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef).subflatMap {
       case ResponseWrapper(responseCorrelationId, ProtectionRecordDetails(data)) if data.isEmpty =>
         logger.warn(
           secondaryContext = doRetrievalLoggingContext,

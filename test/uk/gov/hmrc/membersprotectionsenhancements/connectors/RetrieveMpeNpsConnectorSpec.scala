@@ -16,18 +16,18 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import base.ItBaseSpec
-import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.client.{ResponseDefinitionBuilder, WireMock}
-import play.api.Application
-import play.api.http.Status._
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test.DefaultAwaitTimeout
-import play.api.test.Helpers.await
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, MpeError}
+import com.github.tomakehurst.wiremock.client.WireMock._
+import base.ItBaseSpec
+import play.api.Application
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
 import uk.gov.hmrc.membersprotectionsenhancements.models.response._
+import play.api.test.DefaultAwaitTimeout
+import com.github.tomakehurst.wiremock.client.WireMock
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.Helpers.await
+import play.api.http.Status._
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -54,16 +54,11 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
     "retrieveMpe" -> {
       val npsUrl = s"/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
 
-      def recognisedErrorTest(errorStatus: Int, errorBody: String, errorCode: String): Unit =
+      def recognisedErrorTest(errorStatus: Int, errorCode: String): Unit =
         s"[retrieveMpe] should return the expected result when NPS returns a recognised error with status: $errorStatus" in new Test {
-          val response: ResponseDefinitionBuilder = aResponse()
-            .withStatus(errorStatus)
-            .withBody(errorBody)
-            .withHeader("correlationId", "X-123")
-
           stubGet(
             url = npsUrl,
-            response = response
+            response = aResponse().withStatus(errorStatus).withHeader("correlationId", "X-123")
           )
 
           val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -75,34 +70,16 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
           result.swap.getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A"))).error.code mustBe errorCode
         }
 
-        val recognisedErrorScenarios: Seq[(Int, String, String)] = Seq(
-        (BAD_REQUEST, """{"response": {"failures": [{"reason": "a reason", "code": "a code"}]}}""", "BAD_REQUEST"),
-        (FORBIDDEN, """{"reason": "a reason", "code": "a code"}""", "FORBIDDEN"),
-        (NOT_FOUND, "", "NOT_FOUND"),
-        (UNPROCESSABLE_ENTITY, """{"failures": [{"reason": "a reason", "code": "a code"}]}""", "NOT_FOUND"),
-        (INTERNAL_SERVER_ERROR, """{"response": {"failures": [{"type": "a reason", "reason": "a code"}]}}""", "INTERNAL_ERROR"),
-        (SERVICE_UNAVAILABLE, """{"response": {"failures": [{"type": "a reason", "reason": "a code"}]}}""", "SERVICE_UNAVAILABLE")
-      )
-
-      recognisedErrorScenarios.foreach(scenario => recognisedErrorTest(scenario._1, scenario._2, scenario._3))
-
-      "[retrieveMpe] should return the expected result when NPS returns an unparsable error response" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = aResponse().withStatus(BAD_REQUEST).withHeader("correlationId", "X-123")
+        val recognisedErrorScenarios: Map[Int, String] = Map(
+          BAD_REQUEST -> "BAD_REQUEST",
+          FORBIDDEN -> "FORBIDDEN",
+          NOT_FOUND -> "NOT_FOUND",
+          UNPROCESSABLE_ENTITY -> "NOT_FOUND",
+          INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
+          SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Left[_, _]]
-        result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
-          .code mustBe "INTERNAL_SERVER_ERROR"
-      }
+      recognisedErrorScenarios.foreach(scenario => recognisedErrorTest(scenario._1, scenario._2))
 
       "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
         stubGet(

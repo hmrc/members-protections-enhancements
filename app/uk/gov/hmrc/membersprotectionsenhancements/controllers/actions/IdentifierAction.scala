@@ -119,14 +119,14 @@ class IdentifierActionImpl @Inject() (
             Future.failed(err)
         }
         .recoverWith {
-          case err: MissingBearerToken =>
-            warnLogger("Authorisation bearer token could not be found", Some(err))
+          case _: MissingBearerToken =>
+            warnLogger("Authorisation bearer token could not be found", None)
             Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
-          case err: AuthorisationException =>
-            warnLogger(s"An authorisation error occurred", Some(err))
+          case _: AuthorisationException =>
+            warnLogger(s"An authorisation error occurred", None)
             Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
-          case err =>
-            errorLog(methodLoggingContext, idLogString)("An unexpected error occurred", Some(err))
+          case _: UnauthorizedException =>
+            errorLog(methodLoggingContext, idLogString)("An unexpected authorisation error occurred", None)
             Future.successful(InternalServerError(Json.toJson(InternalFaultError)))
         }
     }

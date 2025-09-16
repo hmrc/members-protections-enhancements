@@ -72,7 +72,9 @@ class MembersLookUpController @Inject() (
     result.leftMap { errorWrapper =>
       warnLogger(errorWrapper.correlationId)(
         "An error occurred while attempting to check for, and retrieve member's protection record details" +
-          s"with code: ${errorWrapper.error.code}, message: ${errorWrapper.error.message}, and source: ${errorWrapper.error.source}",
+          s"with code: ${errorWrapper.error.code}, " +
+          s"message: ${errorWrapper.error.message}, " +
+          s"and source: ${errorWrapper.error.source}",
         None
       )
 

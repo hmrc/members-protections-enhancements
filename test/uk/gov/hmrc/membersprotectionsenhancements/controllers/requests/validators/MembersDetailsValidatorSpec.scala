@@ -127,7 +127,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
             error = MpeError(
               code = "BAD_REQUEST",
               message = "Invalid request data"
-              )
+            )
           )
         )
     }

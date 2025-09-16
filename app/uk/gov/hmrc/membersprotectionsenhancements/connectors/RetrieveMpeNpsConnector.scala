@@ -16,26 +16,27 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import cats.data.EitherT
 import play.api.http.HeaderNames.AUTHORIZATION
+import cats.data.EitherT
+import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
+import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
+import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{ProtectionRecordDetails, ResponseWrapper}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorSource, ErrorWrapper, RetrieveMpe}
 import play.api.http.Status._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.CorrelationId
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.DownstreamErrorResponse.{badRequestErrorReads, internalErrorReads, reasonCodeReads, unprocessableEntityErrorReads}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorSource, ErrorWrapper, RetrieveMpe}
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{ProtectionRecordDetails, ResponseWrapper}
-import uk.gov.hmrc.membersprotectionsenhancements.utils.HeaderKey.{ENVIRONMENT, correlationIdKey, govUkOriginatorIdKey}
-import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
 
-import java.net.URI
-import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
+import javax.inject.{Inject, Singleton}
+import java.net.URI
+
 @Singleton
-class RetrieveMpeNpsConnector @Inject()(val config: AppConfig, val http: HttpClientV2)
-  extends BaseNpsConnector[ProtectionRecordDetails] with Logging {
+class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2)
+    extends BaseNpsConnector[ProtectionRecordDetails]
+    with Logging {
 
   override val source: ErrorSource = RetrieveMpe
 
@@ -95,12 +96,12 @@ class RetrieveMpeNpsConnector @Inject()(val config: AppConfig, val http: HttpCli
     )
   }
 
-  override protected[connectors] val errorMap: Map[Int, (String, ErrorValidation)] = Map(
-    BAD_REQUEST -> ("BAD_REQUEST", jsonErrorValidation(badRequestErrorReads)),
-    FORBIDDEN -> ("FORBIDDEN", jsonErrorValidation(reasonCodeReads)),
-    NOT_FOUND -> ("NOT_FOUND", notFoundErrorValidation),
-    UNPROCESSABLE_ENTITY -> ("NOT_FOUND", jsonErrorValidation(unprocessableEntityErrorReads)),
-    INTERNAL_SERVER_ERROR -> ("INTERNAL_ERROR", jsonErrorValidation(internalErrorReads)),
-    SERVICE_UNAVAILABLE -> ("SERVICE_UNAVAILABLE", jsonErrorValidation(internalErrorReads))
+  override protected[connectors] val errorMap: Map[Int, String] = Map(
+    BAD_REQUEST -> "BAD_REQUEST",
+    FORBIDDEN -> "FORBIDDEN",
+    NOT_FOUND -> "NOT_FOUND",
+    UNPROCESSABLE_ENTITY -> "NOT_FOUND",
+    INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
+    SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
   )
 }
