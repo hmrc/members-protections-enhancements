@@ -43,14 +43,13 @@ class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) exten
         infoLogger("Request body validation completed successfully")
         Right(value)
       case JsError(errors) =>
-        val r = errors.map(t => t._2.foldLeft("")((x, y) => x + y.message))
-
-        logger.error(
+        logger.errorWithException(
           secondaryContext = methodLoggingContext,
-          message = s"Request body validation failed with errors: $r",
+          message = s"Request body validation failed",
+          ex = JsResultException(errors),
           dataLog = idLogString
         )
-        Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data", Some(r.toSeq))))
+        Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data")))
     }
   }
 }

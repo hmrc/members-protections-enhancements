@@ -285,7 +285,6 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result).toString() must include("Missing or invalid dateOfBirth")
       }
 
       def handleMatchErrors(errorStatus: Int, errorCode: String, expectedStatus: Int): Unit =
@@ -305,7 +304,12 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
           status(result) mustBe expectedStatus
           val content: String = contentAsJson(result).toString()
           content must include(errorCode)
-          content must include("MatchPerson")
+
+          if (errorCode == "UNEXPECTED_STATUS_ERROR") {
+            content must include("Internal")
+          } else {
+            content must include("MatchPerson")
+          }
         }
 
       val errorCases: Seq[(Int, String, Int)] = Seq(
@@ -335,7 +339,11 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
           status(result) mustBe expectedStatus
           val content: String = contentAsJson(result).toString()
           content must include(errorCode)
-          content must include("RetrieveMpe")
+          if (errorCode == "UNEXPECTED_STATUS_ERROR") {
+            content must include("Internal")
+          } else {
+            content must include("RetrieveMpe")
+          }
         }
 
       val retrieveErrorCases: Seq[(Int, String, Int)] = Seq(

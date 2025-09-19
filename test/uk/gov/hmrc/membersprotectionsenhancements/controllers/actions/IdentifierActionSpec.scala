@@ -17,12 +17,8 @@
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.actions
 
 import play.api.test.{FakeRequest, StubPlayBodyParsersFactory}
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{
-  InternalFaultError,
-  InvalidBearerTokenError,
-  UnauthorisedError
-}
-import play.api.mvc.{Action, AnyContent, BodyParsers}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{InvalidBearerTokenError, UnauthorisedError}
+import play.api.mvc._
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.UserDetails
 import uk.gov.hmrc.membersprotectionsenhancements.config.Constants
@@ -109,12 +105,11 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
   "AuthenticateIdentifierAction" - {
     val fakeRequestWithCorrelationId = FakeRequest().withHeaders("correlationId" -> "x-id")
 
-    "return an unauthorised result" - {
+    "throw an exception" - {
       "when any unhandled exception occurs" in runningApplication { _ =>
         setAuthValue(Future.failed(new RuntimeException("Authorise predicate fails")))
-        val result = handler.run(fakeRequestWithCorrelationId)
-        redirectLocation(result) mustBe None
-        contentAsJson(result) mustBe Json.toJson(InternalFaultError)
+        val result: Future[Result] = handler.run(fakeRequestWithCorrelationId)
+        assertThrows[RuntimeException](await(result))
       }
 
       "when authorise fails to match predicate" in runningApplication { _ =>

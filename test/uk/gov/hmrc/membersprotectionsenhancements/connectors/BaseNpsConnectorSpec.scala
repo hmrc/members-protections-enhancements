@@ -14,54 +14,61 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.utils
+package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, InternalFaultError}
 import base.UnitBaseSpec
 import play.api.libs.json.{Json, Reads}
+import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.membersprotectionsenhancements.models.response.ResponseWrapper
+import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
 import play.api.http.Status._
 import uk.gov.hmrc.http._
 
-class HttpResponseHelperSpec extends UnitBaseSpec {
+class BaseNpsConnectorSpec extends UnitBaseSpec {
 
-  private object TestObject extends HttpResponseHelper with Logging
   protected case class DummyClass(field: String)
 
   protected object DummyClass {
     implicit val reads: Reads[DummyClass] = Json.reads[DummyClass]
   }
 
+  private object TestObject extends BaseNpsConnector[DummyClass] with Logging {
+    override val errorMap: Map[Int, String] = Map(
+      IM_A_TEAPOT -> "TEAPOT_TIME"
+    )
+
+    override val config: AppConfig = mock[AppConfig]
+    override val source: ErrorSource = Internal
+  }
+
   private val dummyUrl: String = "some-url"
   private val correlationId = "X-123"
 
   "handleErrorResponse" -> {
-    def handleErrorScenario(status: Int, method: String, expectedErrorCode: String): Unit =
-      s"[handleErrorResponse] should handle appropriately for method: $method, and status: $status" in {
-        val dummyResponse = HttpResponse(status, "{}")
-        lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(
-          httpMethod = method,
-          url = dummyUrl,
-          response = dummyResponse,
-          correlationId = correlationId,
-          extraContext = None
-        )
-        testResult.error.code mustBe expectedErrorCode
-      }
+    "[handleErrorResponse] handle appropriately for supported error status" in {
+      val dummyResponse = HttpResponse(IM_A_TEAPOT, "{}")
+      lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(
+        httpMethod = "get",
+        url = dummyUrl,
+        response = dummyResponse,
+        correlationId = correlationId,
+        extraContext = None
+      )
+      testResult.error.code mustBe "TEAPOT_TIME"
+    }
 
-    val testScenarios: Seq[(Int, String, String)] = Seq(
-      (BAD_REQUEST, "GET", "BAD_REQUEST"),
-      (FORBIDDEN, "GET", "FORBIDDEN"),
-      (NOT_FOUND, "GET", "NOT_FOUND"),
-      (NOT_FOUND, "POST", "NOT_FOUND"),
-      (UNPROCESSABLE_ENTITY, "GET", "NOT_FOUND"),
-      (UNPROCESSABLE_ENTITY, "PUT", "UNEXPECTED_STATUS_ERROR"),
-      (INTERNAL_SERVER_ERROR, "GET", "INTERNAL_ERROR"),
-      (SERVICE_UNAVAILABLE, "GET", "SERVICE_UNAVAILABLE"),
-      (IM_A_TEAPOT, "GET", "UNEXPECTED_STATUS_ERROR")
-    )
-
-    testScenarios.foreach(scenario => handleErrorScenario(scenario._1, scenario._2, scenario._3))
+    "[handleErrorResponse] handle appropriately for unsupported error status" in {
+      val dummyResponse = HttpResponse(IM_A_TEAPOT + 1, "{}")
+      lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(
+        httpMethod = "get",
+        url = dummyUrl,
+        response = dummyResponse,
+        correlationId = correlationId,
+        extraContext = None
+      )
+      testResult.error.code mustBe "UNEXPECTED_STATUS_ERROR"
+    }
   }
 
   "jsonValidation" -> {
@@ -110,21 +117,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
 
   "httpReads" -> {
     "[httpReads] should return an error for an expected error status" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
-        .httpReads[DummyClass]
-        .read(
-          method = "GET",
-          url = dummyUrl,
-          response = HttpResponse(BAD_REQUEST, "")
-        )
-
-      result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "BAD_REQUEST"
-    }
-
-    "[httpReads] should handle appropriately for an unexpected status code" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
-        .httpReads[DummyClass]
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -132,12 +125,23 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
+      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "TEAPOT_TIME"
+    }
+
+    "[httpReads] should handle appropriately for an unexpected status code" in {
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+        .read(
+          method = "GET",
+          url = dummyUrl,
+          response = HttpResponse(IM_A_TEAPOT + 1, "")
+        )
+
+      result mustBe a[Left[_, _]]
       result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "UNEXPECTED_STATUS_ERROR"
     }
 
     "[httpReads] should handle appropriately for a success" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
-        .httpReads[DummyClass]
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -149,8 +153,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
     }
 
     "[httpReads] of GET method should handle appropriately for a success with no response body" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
-        .httpReads[DummyClass]
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -162,8 +165,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
     }
 
     "[httpReads] of GET method should handle appropriately for a success with empty json response" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
-        .httpReads[DummyClass]
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -175,8 +177,7 @@ class HttpResponseHelperSpec extends UnitBaseSpec {
     }
 
     "[httpReads] of POST method should handle appropriately for a success with no response body" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject
-        .httpReads[DummyClass]
+      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
         .read(
           method = "POST",
           url = dummyUrl,

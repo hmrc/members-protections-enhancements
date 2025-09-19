@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{EmptyDataError, ErrorWrapper, MpeError}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
 import com.github.tomakehurst.wiremock.client.WireMock._
 import base.ItBaseSpec
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
@@ -34,7 +34,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import java.time.LocalDate
 
-class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
+class MatchPersonNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
   trait Test {
     val application: Application = new GuiceApplicationBuilder()
@@ -44,16 +44,13 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
       )
       .build()
 
-    val connector: NpsConnector = application.injector.instanceOf[NpsConnector]
+    val connector: MatchPersonNpsConnector = application.injector.instanceOf[MatchPersonNpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     implicit val correlationId: CorrelationId = "X-123"
   }
 
   "NpsConnector" -> {
-    val nino: String = "AA123456C"
-    val psaCheckRef: String = "PSA12345678A"
-
     "matchPerson" -> {
       val npsUrl = "/paye/individual/match"
 
@@ -218,215 +215,6 @@ class NpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
 
         result mustBe a[Right[_, _]]
         result.getOrElse(ResponseWrapper(correlationId, `NO MATCH`)).responseData mustBe `MATCH`
-      }
-    }
-
-    "retrieveMpe" -> {
-      val npsUrl = s"/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
-
-      def recognisedErrorTest(errorStatus: Int, errorCode: String): Unit =
-        s"[retrieveMpe] should return the expected result when NPS returns a recognised error with status: $errorStatus" in new Test {
-          stubGet(
-            url = npsUrl,
-            response = aResponse().withStatus(errorStatus).withHeader("correlationId", "X-123")
-          )
-
-          val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-            await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-          WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-          result mustBe a[Left[_, _]]
-          result.swap.getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A"))).error.code mustBe errorCode
-        }
-
-      val recognisedErrorScenarios: Map[Int, String] = Map(
-        BAD_REQUEST -> "BAD_REQUEST",
-        FORBIDDEN -> "FORBIDDEN",
-        NOT_FOUND -> "NOT_FOUND",
-        UNPROCESSABLE_ENTITY -> "NOT_FOUND",
-        INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
-        SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
-      )
-
-      recognisedErrorScenarios.foreach(scenario => recognisedErrorTest(scenario._1, scenario._2))
-
-      "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = aResponse().withStatus(IM_A_TEAPOT).withHeader("correlationId", "X-123")
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Left[_, _]]
-        result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
-          .code mustBe "UNEXPECTED_STATUS_ERROR"
-      }
-
-      "[retrieveMpe] should return the expected result when NPS returns an unparsable OK response" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = okJson("").withHeader("correlationId", "X-123")
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Left[_, _]]
-        result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
-          .code mustBe EmptyDataError.code
-      }
-
-      "[retrieveMpe] should return the expected result when NPS returns an invalid OK response" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = okJson(
-            """
-              |{
-              | "protectionRecords": [
-              |   {
-              |     "protectionReference": "some-id",
-              |     "type": 2,
-              |     "status": "some-status",
-              |     "protectedAmount": 1,
-              |     "lumpSumAmount": 1,
-              |     "lumpSumPercentage": 1,
-              |     "enhancementFactor": 0.5
-              |   }
-              | ]
-              |}
-            """.stripMargin
-          )
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Left[_, _]]
-        result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
-          .code mustBe "INTERNAL_SERVER_ERROR"
-      }
-
-      "[retrieveMpe] should return the expected result when NPS returns an empty json OK response" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = okJson(
-            """
-              |{
-              |}
-            """.stripMargin
-          ).withHeader("correlationId", "X-123")
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Left[_, _]]
-        result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
-          .code mustBe EmptyDataError.code
-      }
-
-      val record: ProtectionRecord = ProtectionRecord(
-        protectionReference = Some("some-id"),
-        `type` = "some-type",
-        status = "some-status",
-        protectedAmount = Some(1),
-        lumpSumAmount = Some(1),
-        lumpSumPercentage = Some(1),
-        enhancementFactor = Some(0.5),
-        pensionCreditLegislation = None
-      )
-
-      val recordJsonString: String =
-        """
-          |{
-          | "protectionRecords": [
-          |   {
-          |     "protectionReference": "some-id",
-          |     "type": "some-type",
-          |     "status": "some-status",
-          |     "protectedAmount": 1,
-          |     "lumpSumAmount": 1,
-          |     "lumpSumPercentage": 1,
-          |     "enhancementFactor": 0.5
-          |   }
-          | ]
-          |}
-        """.stripMargin
-
-      "[retrieveMpe] should return the expected result when NPS returns a valid OK response" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = okJson(recordJsonString).withHeader("correlationId", "X-123")
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Right[_, _]]
-        result
-          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
-          .responseData
-          .protectionRecords
-          .head mustBe record
-      }
-
-      "[retrieveMpe] should handle appropriately when correlation ID is missing for a success" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = okJson(recordJsonString)
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Right[_, _]]
-        result
-          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
-          .responseData
-          .protectionRecords
-          .head mustBe record
-      }
-
-      "[retrieveMpe] should handle appropriately when correlation ID is non-matching for a success" in new Test {
-        stubGet(
-          url = npsUrl,
-          response = okJson(recordJsonString).withHeader("correlationId", "nonMatching")
-        )
-
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-        WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-        result mustBe a[Right[_, _]]
-        result
-          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
-          .responseData
-          .protectionRecords
-          .head mustBe record
       }
     }
   }

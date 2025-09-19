@@ -26,7 +26,11 @@ import uk.gov.hmrc.membersprotectionsenhancements.models.response._
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import org.mockito.Mockito.when
 import base.UnitBaseSpec
-import uk.gov.hmrc.membersprotectionsenhancements.connectors.{ConnectorResult, NpsConnector}
+import uk.gov.hmrc.membersprotectionsenhancements.connectors.{
+  ConnectorResult,
+  MatchPersonNpsConnector,
+  RetrieveMpeNpsConnector
+}
 
 import scala.concurrent.{Future, TimeoutException}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,8 +40,9 @@ import java.time.LocalDate
 class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
 
   trait Test {
-    val npsConnector: NpsConnector = mock[NpsConnector]
-    val orchestrator: MembersLookUpOrchestrator = new MembersLookUpOrchestrator(npsConnector)
+    val matchConnector: MatchPersonNpsConnector = mock[MatchPersonNpsConnector]
+    val retrieveConnector: RetrieveMpeNpsConnector = mock[RetrieveMpeNpsConnector]
+    val orchestrator: MembersLookUpOrchestrator = new MembersLookUpOrchestrator(matchConnector, retrieveConnector)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     implicit val correlationId: CorrelationId = "X-123"
@@ -65,7 +70,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       res: Future[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
     ): OngoingStubbing[ConnectorResult[MatchPersonResponse]] =
       when(
-        npsConnector.matchPerson(
+        matchConnector.matchPerson(
           request = ArgumentMatchers.eq(request)
         )(
           hc = ArgumentMatchers.any(),
@@ -78,7 +83,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       res: Future[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
     ): OngoingStubbing[ConnectorResult[ProtectionRecordDetails]] =
       when(
-        npsConnector.retrieveMpe(
+        retrieveConnector.retrieveMpe(
           nino = ArgumentMatchers.eq(request.identifier),
           psaCheckRef = ArgumentMatchers.eq(request.psaCheckRef)
         )(
