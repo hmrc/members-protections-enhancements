@@ -4,7 +4,7 @@ val appName = "members-protections-enhancements"
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.17",
+    scalaVersion := "2.13.16",
     majorVersion := 0,
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
