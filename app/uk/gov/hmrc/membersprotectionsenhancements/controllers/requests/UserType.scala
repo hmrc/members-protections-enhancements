@@ -15,17 +15,12 @@
  */
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
+import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonSupport
 
-import uk.gov.hmrc.membersprotectionsenhancements.utils.enums.Enums
-import play.api.libs.json.Format
+enum UserType {
+  case PSP, PSA
+}
 
-sealed trait UserType
-
-object UserType extends Enumeration {
-
-  case object PSA extends UserType
-  case object PSP extends UserType
-
-  implicit val formatApiVersion: Format[UserType] = Enums.format[UserType]
-  val parser: PartialFunction[String, UserType] = Enums.parser[UserType]
+object UserType extends EnumJsonSupport[UserType] {
+  override lazy val readsValues: Set[UserType] = UserType.values.toSet
 }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.MatchPersonResponse.{`NO MATCH`, MATCH}
 import base.UnitBaseSpec
 import play.api.libs.json._
 

@@ -15,17 +15,14 @@
  */
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.errors
+import play.api.libs.json.{Reads, Writes}
+import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonSupport
 
-import uk.gov.hmrc.membersprotectionsenhancements.utils.enums.Enums
-import play.api.libs.json.Writes
+enum ErrorSource {
+  case MatchPerson, RetrieveMpe, Internal
+}
 
-sealed trait ErrorSource
+object ErrorSource extends EnumJsonSupport[ErrorSource] {
+  override lazy val readsValues: Set[ErrorSource] = ErrorSource.values.toSet
 
-case object MatchPerson extends ErrorSource
-case object RetrieveMpe extends ErrorSource
-case object Internal extends ErrorSource
-
-object ErrorSource {
-  val writes: Writes[ErrorSource] = Enums.writes[ErrorSource]
-  implicit def genericWrites[T <: ErrorSource]: Writes[T] = writes.contramap[T](c => c: ErrorSource)
 }
