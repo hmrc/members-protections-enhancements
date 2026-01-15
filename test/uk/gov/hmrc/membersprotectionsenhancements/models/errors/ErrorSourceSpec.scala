@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorSource.{Internal, MatchPerson, RetrieveMpe}
 import base.UnitBaseSpec
 import play.api.libs.json.{JsString, Json}
 

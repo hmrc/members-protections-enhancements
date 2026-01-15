@@ -29,7 +29,7 @@ import uk.gov.hmrc.http._
 
 import java.util.Base64
 
-abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions { _: Logging =>
+abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions { this: Logging =>
   val config: AppConfig
   val source: ErrorSource
 

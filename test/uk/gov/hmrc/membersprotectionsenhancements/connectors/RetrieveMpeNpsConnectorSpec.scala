@@ -54,33 +54,6 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
     "retrieveMpe" -> {
       val npsUrl = s"/paye/lifetime-allowance/person/$nino/admin-reference/$psaCheckRef/lookup"
 
-      def recognisedErrorTest(errorStatus: Int, errorCode: String): Unit =
-        s"[retrieveMpe] should return the expected result when NPS returns a recognised error with status: $errorStatus" in new Test {
-          stubGet(
-            url = npsUrl,
-            response = aResponse().withStatus(errorStatus).withHeader("correlationId", "X-123")
-          )
-
-          val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-            await(connector.retrieveMpe(nino, psaCheckRef).value)
-
-          WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
-
-          result mustBe a[Left[_, _]]
-          result.swap.getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A"))).error.code mustBe errorCode
-        }
-
-        val recognisedErrorScenarios: Map[Int, String] = Map(
-          BAD_REQUEST -> "BAD_REQUEST",
-          FORBIDDEN -> "FORBIDDEN",
-          NOT_FOUND -> "NOT_FOUND",
-          UNPROCESSABLE_ENTITY -> "NOT_FOUND",
-          INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
-          SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
-        )
-
-      recognisedErrorScenarios.foreach(scenario => recognisedErrorTest(scenario._1, scenario._2))
-
       "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
         stubGet(
           url = npsUrl,

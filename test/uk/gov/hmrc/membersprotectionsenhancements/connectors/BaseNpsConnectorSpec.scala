@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorSource.Internal
 import base.UnitBaseSpec
 import play.api.libs.json.{Json, Reads}
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig

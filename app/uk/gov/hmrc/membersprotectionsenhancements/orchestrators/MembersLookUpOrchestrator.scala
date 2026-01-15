@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.MatchPersonResponse._
 import cats.data.EitherT
 import uk.gov.hmrc.membersprotectionsenhancements.connectors.{
   ConnectorResult,
