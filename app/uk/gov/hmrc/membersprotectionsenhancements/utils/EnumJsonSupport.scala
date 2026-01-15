@@ -25,8 +25,5 @@ trait EnumJsonSupport[E <: scala.reflect.Enum] {
   private def readsMap: Map[String, E] = readsValues.map(value => value.toString -> value).toMap
 
   implicit lazy val enumWrites: Writes[E] = (o: E) => JsString(o.toString)
-  implicit lazy val enumReads: Reads[E] = {
-    println(readsPath)
-    jsPath.read[String].collect(JsonValidationError(""))(readsMap)
-  }
+  implicit lazy val enumReads: Reads[E] = jsPath.read[String].collect(JsonValidationError(""))(readsMap)
 }
