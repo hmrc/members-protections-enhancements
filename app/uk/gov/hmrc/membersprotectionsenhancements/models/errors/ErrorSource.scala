@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.models.errors
-import play.api.libs.json.{Reads, Writes}
+package uk.gov.hmrc.membersprotectionsenhancements.models.errors 
 import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonSupport
 
 enum ErrorSource {
