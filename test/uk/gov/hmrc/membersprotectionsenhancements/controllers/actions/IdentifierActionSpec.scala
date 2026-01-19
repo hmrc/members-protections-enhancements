@@ -49,7 +49,7 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
         case AdministratorRequest(_, correlationId, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
           Ok(
             Json.obj(
-              "psrUserType" -> psrUserType,
+              "psrUserType" -> psrUserType.toString,
               "userId" -> userId,
               "psaId" -> psrUserId,
               "affinityGroup" -> affinityGroup,
@@ -60,7 +60,7 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
         case PractitionerRequest(_, correlationId, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
           Ok(
             Json.obj(
-              "psrUserType" -> psrUserType,
+              "psrUserType" -> psrUserType.toString,
               "userId" -> userId,
               "pspId" -> psrUserId,
               "affinityGroup" -> affinityGroup,

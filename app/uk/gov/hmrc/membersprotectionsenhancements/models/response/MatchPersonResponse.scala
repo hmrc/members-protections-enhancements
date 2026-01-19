@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonSupport
+import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonReads
 
 enum MatchPersonResponse {
   case MATCH, `NO MATCH`
 }
 
-object MatchPersonResponse extends EnumJsonSupport[MatchPersonResponse] {
+object MatchPersonResponse extends EnumJsonReads[MatchPersonResponse] {
   override lazy val readsValues: Set[MatchPersonResponse] = MatchPersonResponse.values.toSet
   override val readsPath: String = "matchResult"
 }

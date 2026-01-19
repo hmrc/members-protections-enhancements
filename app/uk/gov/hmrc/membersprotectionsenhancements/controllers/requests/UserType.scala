@@ -15,12 +15,7 @@
  */
 
 package uk.gov.hmrc.membersprotectionsenhancements.controllers.requests
-import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonSupport
 
 enum UserType {
   case PSP, PSA
-}
-
-object UserType extends EnumJsonSupport[UserType] {
-  override lazy val readsValues: Set[UserType] = UserType.values.toSet
 }

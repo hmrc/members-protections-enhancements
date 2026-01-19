@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.membersprotectionsenhancements.models.errors 
-import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonSupport
+package uk.gov.hmrc.membersprotectionsenhancements.models.errors
+
+import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonWrites
 
 enum ErrorSource {
   case MatchPerson, RetrieveMpe, Internal
 }
 
-object ErrorSource extends EnumJsonSupport[ErrorSource] {
-  override lazy val readsValues: Set[ErrorSource] = ErrorSource.values.toSet
-
-}
+object ErrorSource extends EnumJsonWrites[ErrorSource]

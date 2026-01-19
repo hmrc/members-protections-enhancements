@@ -18,12 +18,15 @@ package uk.gov.hmrc.membersprotectionsenhancements.utils
 
 import play.api.libs.json._
 
-trait EnumJsonSupport[E <: scala.reflect.Enum] {
+trait EnumJsonReads[E <: scala.reflect.Enum] {
   lazy val readsValues: Set[E]
   val readsPath: String = ""
   lazy val jsPath: JsPath = JsPath(readsPath.split("/").map(KeyPathNode(_)).toList)
-  private def readsMap: Map[String, E] = readsValues.map(value => value.toString -> value).toMap
 
-  implicit lazy val enumWrites: Writes[E] = (o: E) => JsString(o.toString)
+  private def readsMap: Map[String, E] = readsValues.map(value => value.toString -> value).toMap
   implicit lazy val enumReads: Reads[E] = jsPath.read[String].collect(JsonValidationError(""))(readsMap)
+}
+
+trait EnumJsonWrites[E <: scala.reflect.Enum] {
+  implicit lazy val enumWrites: Writes[E] = (o: E) => JsString(o.toString)
 }
