@@ -39,7 +39,6 @@ object PensionSchemeMemberRequest {
       .and(
         (__ \ "dateOfBirth").read[LocalDate](dateReads).orError(__ \ "dateOfBirth", "Missing or invalid dateOfBirth")
       )
-      // TODO: This should probably be 'identifier' and not 'nino' but that would require frontend changes
       .and((__ \ "nino").read[String](identifier).orError(__ \ "identifier", "Missing or invalid nino"))
       .and(
         (__ \ "psaCheckRef").read[String](psaCheckRef).orError(__ \ "psaCheckRef", "Missing or invalid psaCheckRef")
