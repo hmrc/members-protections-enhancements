@@ -17,6 +17,7 @@
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorWrapper, MpeError}
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.MatchPersonResponse._
 import com.github.tomakehurst.wiremock.client.WireMock._
 import base.ItBaseSpec
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}

@@ -72,7 +72,7 @@ abstract class ItBaseSpec
   def stubGet(url: String, queryParams: Map[String, String], response: ResponseDefinitionBuilder): StubMapping =
     wireMockServer.stubFor(
       get(urlPathTemplate(url))
-        .withQueryParams(queryParams)
+        .withQueryParams(queryParamsToJava(queryParams))
         .willReturn(response)
     )
 

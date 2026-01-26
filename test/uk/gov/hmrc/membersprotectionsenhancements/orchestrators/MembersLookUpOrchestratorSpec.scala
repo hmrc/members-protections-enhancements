@@ -17,6 +17,8 @@
 package uk.gov.hmrc.membersprotectionsenhancements.orchestrators
 
 import uk.gov.hmrc.membersprotectionsenhancements.models.errors._
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorSource.MatchPerson
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.MatchPersonResponse.{`NO MATCH`, MATCH}
 import cats.data.EitherT
 import uk.gov.hmrc.http.HeaderCarrier
 import org.mockito.stubbing.OngoingStubbing

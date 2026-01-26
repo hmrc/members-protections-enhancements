@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.errors
 
-import play.api.libs.json.{Json, OWrites}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorSource.{Internal, MatchPerson, RetrieveMpe}
+import play.api.libs.json.{JsString, Json, OWrites}
 
 sealed case class MpeError(
   code: String,
@@ -25,11 +26,12 @@ sealed case class MpeError(
 )
 
 object MpeError {
-  implicit val writes: OWrites[MpeError] = Json.writes[MpeError]
-
-  implicit def genericWrites[T <: MpeError]: OWrites[T] =
-    writes.contramap[T](c => c: MpeError)
-
+  implicit def writes[T <: MpeError]: OWrites[T] = (o: T) =>
+    Json.obj(
+      "code" -> JsString(o.code),
+      "message" -> JsString(o.message),
+      "source" -> Json.toJson(o.source)
+    )
 }
 
 object UnauthorisedError

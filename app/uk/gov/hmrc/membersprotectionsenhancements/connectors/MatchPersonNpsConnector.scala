@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.connectors
 
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.ErrorSource.MatchPerson
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
 import play.api.http.ContentTypes
 import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
@@ -25,11 +26,12 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.membersprotectionsenhancements.controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import uk.gov.hmrc.membersprotectionsenhancements.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ResponseWrapper}
 import uk.gov.hmrc.membersprotectionsenhancements.utils.Logging
-import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorSource, ErrorWrapper, MatchPerson}
+import uk.gov.hmrc.membersprotectionsenhancements.models.errors.{ErrorSource, ErrorWrapper}
 import play.api.http.Status._
 import uk.gov.hmrc.http._
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.membersprotectionsenhancements.models.response.{MatchPersonResponse, ResponseWrapper}
 
 import scala.concurrent.ExecutionContext
 

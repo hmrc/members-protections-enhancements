@@ -16,15 +16,13 @@
 
 package uk.gov.hmrc.membersprotectionsenhancements.models.response
 
-import uk.gov.hmrc.membersprotectionsenhancements.utils.enums.Enums
-import play.api.libs.json._
+import uk.gov.hmrc.membersprotectionsenhancements.utils.EnumJsonReads
 
-sealed abstract class MatchPersonResponse
+enum MatchPersonResponse {
+  case MATCH, `NO MATCH`
+}
 
-case object `MATCH` extends MatchPersonResponse
-case object `NO MATCH` extends MatchPersonResponse
-
-object MatchPersonResponse {
-  private val enumReads: Reads[MatchPersonResponse] = Enums.reads[MatchPersonResponse]
-  implicit val reads: Reads[MatchPersonResponse] = (__ \ "matchResult").read[MatchPersonResponse](enumReads)
+object MatchPersonResponse extends EnumJsonReads[MatchPersonResponse] {
+  override lazy val readsValues: Set[MatchPersonResponse] = MatchPersonResponse.values.toSet
+  override val readsPath: String = "matchResult"
 }
