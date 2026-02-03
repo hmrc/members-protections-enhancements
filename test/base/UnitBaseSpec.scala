@@ -38,6 +38,7 @@ import org.scalatest.matchers.must.Matchers
 import play.api.mvc.BodyParsers
 import play.api.inject.bind
 import play.api.libs.ws.WSClient
+import controllers.actions.IdentifierAction
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
