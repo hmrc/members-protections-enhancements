@@ -16,23 +16,22 @@
 
 package connectors
 
-import utils.Logging
-import config.AppConfig
 import cats.data.EitherT
-import models.errors.ErrorSource.RetrieveMpe
-import models.response.{ProtectionRecordDetails, ResponseWrapper}
-import uk.gov.hmrc.http.client.HttpClientV2
-import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
-import models.errors.{ErrorSource, ErrorWrapper}
+import config.AppConfig
 import controllers.requests.CorrelationId
+import models.errors.ErrorSource.RetrieveMpe
+import models.errors.{ErrorSource, ErrorWrapper}
+import models.response.{ProtectionRecordDetails, ResponseWrapper}
 import play.api.http.HeaderNames.AUTHORIZATION
-import play.api.http.Status._
+import play.api.http.Status.*
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.HttpClientV2
+import utils.HeaderKey.{ENVIRONMENT, correlationIdKey, govUkOriginatorIdKey}
+import utils.Logging
 
-import scala.concurrent.ExecutionContext
-
-import javax.inject.{Inject, Singleton}
 import java.net.URI
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2)

@@ -16,27 +16,26 @@
 
 package connectors
 
-import utils.Logging
-import play.api.http.ContentTypes
-import config.AppConfig
 import cats.data.EitherT
+import config.AppConfig
 import controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
-import models.errors.ErrorSource.MatchPerson
-import models.response.{MatchPersonResponse, ResponseWrapper}
-import play.api.libs.json.Json
-import uk.gov.hmrc.http.client.HttpClientV2
-import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
 import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
-import play.api.http.Status._
-import uk.gov.hmrc.http.HeaderCarrier
+import models.errors.ErrorSource.MatchPerson
 import models.errors.{ErrorSource, ErrorWrapper}
+import models.response.{MatchPersonResponse, ResponseWrapper}
+import play.api.http.ContentTypes
+import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
+import play.api.http.Status.*
+import play.api.libs.json.Json
 import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.HttpClientV2
+import utils.HeaderKey.{ENVIRONMENT, correlationIdKey, govUkOriginatorIdKey}
+import utils.Logging
 
-import scala.concurrent.ExecutionContext
-
-import javax.inject.{Inject, Singleton}
 import java.net.URI
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2)
