@@ -16,13 +16,14 @@
 
 package controllers.requests.validators
 
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import models.errors.{ErrorWrapper, MpeError}
-import play.api.libs.json.*
 import utils.Logging
+import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
+import play.api.libs.json._
+import models.errors.{ErrorWrapper, MpeError}
+
+import scala.concurrent.ExecutionContext
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 @Singleton
 class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) extends Logging {

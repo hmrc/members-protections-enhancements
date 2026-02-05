@@ -74,8 +74,6 @@ trait UnitBaseSpec
   def runningApplication(block: Application => Unit): Unit =
     running(_ => applicationBuilder())(block)
 
-  protected def injected[A: ClassTag](implicit app: Application): A = app.injector.instanceOf[A]
-
   def urlEncode(input: String): String = URLEncoder.encode(input, "utf-8")
 
   lazy val client: WSClient = app.injector.instanceOf[WSClient]

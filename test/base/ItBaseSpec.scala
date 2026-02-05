@@ -22,14 +22,13 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.BodyParsers
 import com.github.tomakehurst.wiremock.client.WireMock._
 import controllers.actions.FakePsaIdentifierAction
+import org.scalatest.time.{Millis, Span}
 import com.github.tomakehurst.wiremock.matching.StringValuePattern
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
 import org.scalatest.wordspec.AnyWordSpec
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.matchers.must.Matchers
-import play.api.Application
-import org.scalatest.time.{Millis, Span}
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.ClassTag
@@ -60,8 +59,6 @@ abstract class ItBaseSpec
         "auditing.enabled" -> false,
         "metric.enabled" -> false
       )
-
-  protected def injected[A: ClassTag](implicit app: Application): A = app.injector.instanceOf[A]
 
   def stubGet(url: String, response: ResponseDefinitionBuilder): StubMapping =
     wireMockServer.stubFor(

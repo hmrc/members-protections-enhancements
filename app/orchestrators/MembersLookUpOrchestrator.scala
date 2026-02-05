@@ -16,17 +16,18 @@
 
 package orchestrators
 
-import cats.data.EitherT
+import utils.Logging
+import models.response.MatchPersonResponse._
 import connectors.{ConnectorResult, MatchPersonNpsConnector, RetrieveMpeNpsConnector}
 import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import models.errors.{EmptyDataError, ErrorWrapper, NoMatchError}
-import models.response.MatchPersonResponse.*
+import cats.data.EitherT
 import models.response.{ProtectionRecordDetails, ResponseWrapper}
 import uk.gov.hmrc.http.HeaderCarrier
-import utils.Logging
+import models.errors.{EmptyDataError, ErrorWrapper, NoMatchError}
+
+import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class MembersLookUpOrchestrator @Inject() (

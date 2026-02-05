@@ -16,16 +16,16 @@
 
 package connectors
 
+import utils.Logging
+import controllers.requests.CorrelationId
 import com.fasterxml.jackson.core.JsonParseException
+import models.response.ResponseWrapper
+import play.api.libs.json._
+import models.errors._
 import com.fasterxml.jackson.databind.JsonMappingException
 import config.AppConfig
-import controllers.requests.CorrelationId
-import models.errors.*
-import models.response.ResponseWrapper
-import play.api.http.Status.*
-import play.api.libs.json.*
+import play.api.http.Status._
 import uk.gov.hmrc.http.{HttpErrorFunctions, HttpReads, HttpResponse}
-import utils.Logging
 
 import java.util.Base64
 

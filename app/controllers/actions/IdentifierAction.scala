@@ -16,20 +16,20 @@
 
 package controllers.actions
 
+import utils.{HeaderKey, Logging}
+import play.api.mvc._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
+import controllers.requests._
 import config.Constants
-import controllers.requests.*
-import controllers.requests.IdentifierRequest.*
-import models.errors.*
-import play.api.libs.json.Json
-import play.api.mvc.*
-import play.api.mvc.Results.{InternalServerError, Unauthorized}
-import uk.gov.hmrc.auth.core.*
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{affinityGroup, authorisedEnrolments, internalId}
 import uk.gov.hmrc.auth.core.retrieve.~
+import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import utils.{HeaderKey, Logging}
+import play.api.mvc.Results.{InternalServerError, Unauthorized}
+import models.errors._
+import controllers.requests.IdentifierRequest._
+import uk.gov.hmrc.auth.core._
 
 import scala.concurrent.{ExecutionContext, Future}
 

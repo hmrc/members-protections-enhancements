@@ -16,7 +16,7 @@
 
 package utils
 
-import play.api.libs.json.*
+import play.api.libs.json._
 
 trait EnumJsonReads[E <: scala.reflect.Enum] {
   lazy val readsValues: Set[E]

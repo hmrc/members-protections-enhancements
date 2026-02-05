@@ -15,8 +15,8 @@
  */
 
 import cats.data.EitherT
-import models.errors.ErrorWrapper
 import models.response.ResponseWrapper
+import models.errors.ErrorWrapper
 
 import scala.concurrent.Future
 

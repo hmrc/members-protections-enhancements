@@ -16,18 +16,19 @@
 
 package controllers
 
-import cats.data.EitherT
-import controllers.actions.IdentifierAction
-import controllers.requests.CorrelationId
-import controllers.requests.validators.MembersLookUpValidator
-import orchestrators.MembersLookUpOrchestrator
-import play.api.libs.json.*
-import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.Logging
+import play.api.mvc.{Action, ControllerComponents}
+import cats.data.EitherT
+import orchestrators.MembersLookUpOrchestrator
+import controllers.actions.IdentifierAction
+import play.api.libs.json._
+import controllers.requests.validators.MembersLookUpValidator
+import controllers.requests.CorrelationId
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+
+import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class MembersLookUpController @Inject() (
