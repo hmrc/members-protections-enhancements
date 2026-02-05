@@ -19,9 +19,9 @@ package base
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import org.scalatest.concurrent.ScalaFutures
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions.FakePsaIdentifierAction
 import play.api.mvc.BodyParsers
 import com.github.tomakehurst.wiremock.client.WireMock._
+import controllers.actions.FakePsaIdentifierAction
 import com.github.tomakehurst.wiremock.matching.StringValuePattern
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
