@@ -33,11 +33,11 @@
 package base
 
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import uk.gov.hmrc.membersprotectionsenhancements.controllers.actions._
 import org.scalatest.matchers.must.Matchers
 import play.api.mvc.BodyParsers
 import play.api.inject.bind
 import play.api.libs.ws.WSClient
+import controllers.actions.{IdentifierAction, _}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -73,8 +73,6 @@ trait UnitBaseSpec
 
   def runningApplication(block: Application => Unit): Unit =
     running(_ => applicationBuilder())(block)
-
-  protected def injected[A: ClassTag](implicit app: Application): A = app.injector.instanceOf[A]
 
   def urlEncode(input: String): String = URLEncoder.encode(input, "utf-8")
 

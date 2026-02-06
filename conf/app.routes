@@ -1,5 +1,5 @@
 # microservice specific routes
 
-POST       /check-and-retrieve              uk.gov.hmrc.membersprotectionsenhancements.controllers.MembersLookUpController.checkAndRetrieve
+POST       /check-and-retrieve              controllers.MembersLookUpController.checkAndRetrieve
 
 
