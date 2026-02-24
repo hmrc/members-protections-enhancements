@@ -19,8 +19,10 @@ package connectors
 import utils.Logging
 import controllers.requests.CorrelationId
 import com.fasterxml.jackson.core.JsonParseException
+import utils.ErrorCodes.REDACTED
 import models.response.ResponseWrapper
 import play.api.libs.json._
+import utils.HeaderKey.correlationIdKey
 import models.errors._
 import com.fasterxml.jackson.databind.JsonMappingException
 import config.AppConfig
@@ -34,7 +36,7 @@ abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions { this: 
   val source: ErrorSource
 
   private def retrieveCorrelationId(response: HttpResponse): CorrelationId = CorrelationId(
-    response.header("correlationId").getOrElse("N/A")
+    response.header(correlationIdKey).getOrElse("N/A")
   )
 
   protected[connectors] def authorization(): String = {
@@ -161,7 +163,7 @@ abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions { this: 
           verbName = httpMethod,
           url = url,
           status = response.status,
-          responseBody = "REDACTED"
+          responseBody = REDACTED
         )
         warnLogger(errorMessage, None)
         ErrorWrapper(correlationId, MpeError(errorCode, errorMessage, source))

@@ -41,4 +41,4 @@ lazy val it = project
     Test / unmanagedResourceDirectories += baseDirectory.value / "it" / "test" / "resources"
   )
 
-addCommandAlias("testc", "; clean ; coverage ; test ; it/test ; coverageReport ;")
+addCommandAlias("runTestsWithCoverage", "; clean ; coverage ; test ; it/test ; coverageReport ;")

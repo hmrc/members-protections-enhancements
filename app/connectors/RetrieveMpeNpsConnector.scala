@@ -19,6 +19,7 @@ package connectors
 import utils.Logging
 import config.AppConfig
 import cats.data.EitherT
+import utils.ErrorCodes._
 import models.errors.ErrorSource.RetrieveMpe
 import models.response.{ProtectionRecordDetails, ResponseWrapper}
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -98,11 +99,11 @@ class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   }
 
   override protected[connectors] val errorMap: Map[Int, String] = Map(
-    BAD_REQUEST -> "BAD_REQUEST",
-    FORBIDDEN -> "FORBIDDEN",
-    NOT_FOUND -> "NOT_FOUND",
-    UNPROCESSABLE_ENTITY -> "NOT_FOUND",
-    INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
-    SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
+    BAD_REQUEST -> BAD_REQUEST_ERROR,
+    FORBIDDEN -> FORBIDDEN_ERROR,
+    NOT_FOUND -> NOT_FOUND_ERROR,
+    UNPROCESSABLE_ENTITY -> NOT_FOUND_ERROR,
+    INTERNAL_SERVER_ERROR -> INTERNAL_ERROR,
+    SERVICE_UNAVAILABLE -> SERVICE_UNAVAILABLE_ERROR
   )
 }
