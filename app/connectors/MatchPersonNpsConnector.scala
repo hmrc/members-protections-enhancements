@@ -25,16 +25,16 @@ import models.errors.ErrorSource.MatchPerson
 import models.response.{MatchPersonResponse, ResponseWrapper}
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.client.HttpClientV2
-import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
+import utils.HeaderKey.{ENVIRONMENT, correlationIdKey, govUkOriginatorIdKey}
 import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
-import play.api.http.Status._
+import play.api.http.Status.*
 import uk.gov.hmrc.http.HeaderCarrier
 import models.errors.{ErrorSource, ErrorWrapper}
 import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import utils.ErrorCodes.{BAD_REQUEST_ERROR, FORBIDDEN_ERROR, INTERNAL_ERROR, NOT_FOUND_ERROR, SERVICE_UNAVAILABLE_ERROR}
 
 import scala.concurrent.ExecutionContext
-
 import javax.inject.{Inject, Singleton}
 import java.net.URI
 
@@ -102,10 +102,10 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   }
 
   override protected[connectors] val errorMap: Map[Int, String] = Map(
-    BAD_REQUEST -> "BAD_REQUEST",
-    FORBIDDEN -> "FORBIDDEN",
-    NOT_FOUND -> "NOT_FOUND",
-    INTERNAL_SERVER_ERROR -> "INTERNAL_ERROR",
-    SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
+    BAD_REQUEST -> BAD_REQUEST_ERROR,
+    FORBIDDEN -> FORBIDDEN_ERROR,
+    NOT_FOUND -> NOT_FOUND_ERROR,
+    INTERNAL_SERVER_ERROR -> INTERNAL_ERROR,
+    SERVICE_UNAVAILABLE -> SERVICE_UNAVAILABLE_ERROR
   )
 }
