@@ -20,6 +20,7 @@ import play.api.test.FakeRequest
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.mvc.{AnyContentAsEmpty, Result}
 import controllers.MembersLookUpController
+import utils.ErrorCodes._
 import controllers.actions.IdentifierAction
 import models.response.{ProtectionRecord, ProtectionRecordDetails}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -68,15 +69,15 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
     val downstreamRequestJson: String = Json
       .parse(
         """
-        |{
-        | "identifier": "AA123456C",
-        | "firstForename": "John",
-        | "surname": "Smith",
-        | "dateOfBirth": "2024-12-31"
-        |}
+          |{
+          | "identifier": "AA123456C",
+          | "firstForename": "John",
+          | "surname": "Smith",
+          | "dateOfBirth": "2024-12-31"
+          |}
       """.stripMargin
       )
-      .toString()
+      .toString
 
     val matchResponseJson: String =
       """
@@ -303,7 +304,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
           val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
           status(result) mustBe expectedStatus
-          val content: String = contentAsJson(result).toString()
+          val content: String = contentAsJson(result).toString
           content must include(errorCode)
 
           if (errorCode == "UNEXPECTED_STATUS_ERROR") {
@@ -314,11 +315,11 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
         }
 
       val errorCases: Seq[(Int, String, Int)] = Seq(
-        (BAD_REQUEST, "BAD_REQUEST", BAD_REQUEST),
-        (FORBIDDEN, "FORBIDDEN", FORBIDDEN),
-        (INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", INTERNAL_SERVER_ERROR),
-        (SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", INTERNAL_SERVER_ERROR),
-        (IM_A_TEAPOT, "UNEXPECTED_STATUS_ERROR", INTERNAL_SERVER_ERROR)
+        (BAD_REQUEST, BAD_REQUEST_ERROR, BAD_REQUEST),
+        (FORBIDDEN, FORBIDDEN_ERROR, FORBIDDEN),
+        (INTERNAL_SERVER_ERROR, INTERNAL_ERROR, INTERNAL_SERVER_ERROR),
+        (SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE_ERROR, INTERNAL_SERVER_ERROR),
+        (IM_A_TEAPOT, UNEXPECTED_STATUS_ERROR, INTERNAL_SERVER_ERROR)
       )
 
       errorCases.foreach(errorCase => handleMatchErrors(errorCase._1, errorCase._2, errorCase._3))
@@ -338,7 +339,7 @@ class MembersLookUpControllerSpec extends ItBaseSpec {
           val result: Future[Result] = controller.checkAndRetrieve(postRequest)
 
           status(result) mustBe expectedStatus
-          val content: String = contentAsJson(result).toString()
+          val content: String = contentAsJson(result).toString
           content must include(errorCode)
           if (errorCode == "UNEXPECTED_STATUS_ERROR") {
             content must include("Internal")

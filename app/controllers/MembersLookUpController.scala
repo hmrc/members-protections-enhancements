@@ -20,11 +20,13 @@ import utils.Logging
 import play.api.mvc.{Action, ControllerComponents}
 import cats.data.EitherT
 import orchestrators.MembersLookUpOrchestrator
+import utils.ErrorCodes._
 import controllers.actions.IdentifierAction
 import play.api.libs.json._
-import controllers.requests.validators.MembersLookUpValidator
 import controllers.requests.CorrelationId
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.HeaderKey.correlationIdKey
+import controllers.requests.validators.MembersLookUpValidator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -65,7 +67,7 @@ class MembersLookUpController @Inject() (
         response <- orchestrator.checkAndRetrieve(validatedRequest)
       } yield {
         infoLogger(response.correlationId)("Successfully retrieved member's protection record details")
-        Ok(Json.toJson(response.responseData)).withHeaders("correlationId" -> response.correlationId.value)
+        Ok(Json.toJson(response.responseData)).withHeaders(correlationIdKey -> response.correlationId.value)
       }
 
     result.leftMap { errorWrapper =>
@@ -78,13 +80,13 @@ class MembersLookUpController @Inject() (
       )
 
       val errorResponse = errorWrapper.error.code match {
-        case "BAD_REQUEST" => BadRequest(Json.toJson(errorWrapper.error))
-        case "NOT_FOUND" | "NO_MATCH" | "EMPTY_DATA" => NotFound(Json.toJson(errorWrapper.error))
-        case "FORBIDDEN" => Forbidden(Json.toJson(errorWrapper.error))
+        case BAD_REQUEST_ERROR => BadRequest(Json.toJson(errorWrapper.error))
+        case NOT_FOUND_ERROR | NO_MATCH_ERROR | EMPTY_DATA_ERROR => NotFound(Json.toJson(errorWrapper.error))
+        case FORBIDDEN_ERROR => Forbidden(Json.toJson(errorWrapper.error))
         case _ => InternalServerError(Json.toJson(errorWrapper.error))
       }
 
-      errorResponse.withHeaders("correlationId" -> errorWrapper.correlationId.value)
+      errorResponse.withHeaders(correlationIdKey -> errorWrapper.correlationId.value)
     }.merge
   }
 }
