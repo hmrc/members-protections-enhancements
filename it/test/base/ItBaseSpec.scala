@@ -17,18 +17,18 @@
 package base
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.matching.StringValuePattern
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import controllers.actions.FakePsaIdentifierAction
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.time.{Millis, Span}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.BodyParsers
-import com.github.tomakehurst.wiremock.client.WireMock._
-import controllers.actions.FakePsaIdentifierAction
-import org.scalatest.time.{Millis, Span}
-import com.github.tomakehurst.wiremock.matching.StringValuePattern
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.http.test.{HttpClientV2Support, WireMockSupport}
-import org.scalatest.wordspec.AnyWordSpec
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import org.scalatest.matchers.must.Matchers
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.ClassTag

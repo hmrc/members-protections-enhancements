@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,23 @@
 
 package connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import controllers.requests.CorrelationId
 import base.ItBaseSpec
-import models.response.{ProtectionRecord, ProtectionRecordDetails, ResponseWrapper}
-import play.api.Application
-import models.errors.{EmptyDataError, ErrorWrapper, MpeError}
-import play.api.test.DefaultAwaitTimeout
 import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import controllers.requests.CorrelationId
+import models.errors.{EmptyDataError, ErrorWrapper, MpeError}
+import models.response.{ProtectionRecord, ProtectionRecordDetails, ResponseWrapper}
+import org.scalactic.Prettifier.default
+import play.api.Application
+import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.await
-import play.api.http.Status._
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
+class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
 
   trait Test {
     val application: Application = new GuiceApplicationBuilder()
@@ -57,7 +58,7 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
         stubGet(
           url = npsUrl,
-          response = aResponse().withStatus(IM_A_TEAPOT).withHeader("correlationId", "X-123")
+          response = aResponse().withStatus(IM_A_TEAPOT).withHeader(correlationId.value, "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -75,7 +76,7 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns an unparsable OK response" in new Test {
         stubGet(
           url = npsUrl,
-          response = okJson("").withHeader("correlationId", "X-123")
+          response = okJson("").withHeader(correlationId.value, "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -132,7 +133,7 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
               |{
               |}
             """.stripMargin
-          ).withHeader("correlationId", "X-123")
+          ).withHeader(correlationId.value, "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
@@ -178,7 +179,7 @@ class RetrieveMpeNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns a valid OK response" in new Test {
         stubGet(
           url = npsUrl,
-          response = okJson(recordJsonString).withHeader("correlationId", "X-123")
+          response = okJson(recordJsonString).withHeader(correlationId.value, "X-123")
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =

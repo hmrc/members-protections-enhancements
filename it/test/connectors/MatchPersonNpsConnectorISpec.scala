@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,25 @@
 
 package connectors
 
-import models.response.MatchPersonResponse._
-import com.github.tomakehurst.wiremock.client.WireMock._
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import base.ItBaseSpec
-import models.response.{MatchPersonResponse, ResponseWrapper}
-import models.errors.{ErrorWrapper, MpeError}
-import play.api.test.DefaultAwaitTimeout
 import com.github.tomakehurst.wiremock.client.WireMock
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test.Helpers.await
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
+import models.errors.{ErrorWrapper, MpeError}
+import models.response.MatchPersonResponse.*
+import models.response.{MatchPersonResponse, ResponseWrapper}
 import play.api.Application
+import play.api.http.Status.*
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
-import play.api.http.Status._
+import play.api.test.DefaultAwaitTimeout
+import play.api.test.Helpers.await
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import java.time.LocalDate
-
-class MatchPersonNpsConnectorSpec extends ItBaseSpec with DefaultAwaitTimeout {
+class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
 
   trait Test {
     val application: Application = new GuiceApplicationBuilder()

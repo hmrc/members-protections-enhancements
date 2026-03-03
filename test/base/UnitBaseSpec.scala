@@ -31,24 +31,22 @@
  */
 
 package base
-
+import controllers.actions.*
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.matchers.must.Matchers
-import play.api.mvc.BodyParsers
-import play.api.inject.bind
-import play.api.libs.ws.WSClient
-import controllers.actions.{IdentifierAction, _}
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import org.scalatestplus.mockito.MockitoSugar
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test.Helpers.running
 import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.must.Matchers
 import org.scalatest.{BeforeAndAfterEach, OptionValues, TryValues}
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-
-import scala.reflect.ClassTag
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.ws.WSClient
+import play.api.mvc.BodyParsers
+import play.api.test.Helpers.running
 
 import java.net.URLEncoder
+import scala.reflect.ClassTag
 
 trait UnitBaseSpec
     extends AnyFreeSpec
@@ -77,4 +75,5 @@ trait UnitBaseSpec
   def urlEncode(input: String): String = URLEncoder.encode(input, "utf-8")
 
   lazy val client: WSClient = app.injector.instanceOf[WSClient]
+
 }
