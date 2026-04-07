@@ -29,8 +29,9 @@ import javax.inject.{Inject, Singleton}
 class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) extends Logging {
 
   def validate(
-    requestBody: JsValue
-  )(implicit correlationId: CorrelationId): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
+    requestBody: JsValue,
+    correlationId: CorrelationId
+  ): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
     val methodLoggingContext: String = "validate"
 
     val idLogString: String = correlationIdLogString(correlationId)

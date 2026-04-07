@@ -47,11 +47,11 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   override val source: ErrorSource = MatchPerson
 
   def matchPerson(
-    request: PensionSchemeMemberRequest
+    request: PensionSchemeMemberRequest,
+    correlationId: CorrelationId
   )(implicit
     hc: HeaderCarrier,
-    ec: ExecutionContext,
-    correlationId: CorrelationId
+    ec: ExecutionContext
   ): ConnectorResult[MatchPersonResponse] = {
     val matchIndividualAccountUrl: String = config.matchUrl
 

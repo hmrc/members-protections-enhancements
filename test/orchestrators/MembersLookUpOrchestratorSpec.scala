@@ -43,7 +43,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     val orchestrator: MembersLookUpOrchestrator = new MembersLookUpOrchestrator(matchConnector, retrieveConnector)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val correlationId: CorrelationId = "X-123"
+    val correlationId: CorrelationId = "X-123"
 
     val request: PensionSchemeMemberRequest = PensionSchemeMemberRequest(
       firstName = "Paul",
@@ -69,11 +69,11 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     ): OngoingStubbing[ConnectorResult[MatchPersonResponse]] =
       when(
         matchConnector.matchPerson(
-          request = ArgumentMatchers.eq(request)
+          request = ArgumentMatchers.eq(request),
+          correlationId = ArgumentMatchers.any()
         )(
           hc = ArgumentMatchers.any(),
-          ec = ArgumentMatchers.any(),
-          correlationId = ArgumentMatchers.any()
+          ec = ArgumentMatchers.any()
         )
       ).thenReturn(EitherT(res))
 
@@ -83,11 +83,11 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       when(
         retrieveConnector.retrieveMpe(
           nino = ArgumentMatchers.eq(request.identifier),
-          psaCheckRef = ArgumentMatchers.eq(request.psaCheckRef)
+          psaCheckRef = ArgumentMatchers.eq(request.psaCheckRef),
+          correlationId = ArgumentMatchers.any()
         )(
           hc = ArgumentMatchers.any(),
-          ec = ArgumentMatchers.any(),
-          correlationId = ArgumentMatchers.any()
+          ec = ArgumentMatchers.any()
         )
       ).thenReturn(EitherT(res))
   }
@@ -99,7 +99,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
           Future.successful(Left(ErrorWrapper(correlationId, InternalFaultError.copy(source = MatchPerson))))
         )
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
@@ -111,7 +111,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       "should return the expected result when match person check returns NO MATCH" in new Test {
         matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, `NO MATCH`))))
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
@@ -124,7 +124,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
         retrieveMpeMock(Future.successful(Left(ErrorWrapper(correlationId, UnexpectedStatusError))))
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
@@ -137,7 +137,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
         retrieveMpeMock(Future.successful(Right(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))))
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
@@ -150,7 +150,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
         retrieveMpeMock(Future.successful(Left(ErrorWrapper(correlationId, EmptyDataError))))
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
         result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
@@ -165,7 +165,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
           Future.successful(Right(ResponseWrapper(correlationId, ProtectionRecordDetails(Seq(retrieveResponse)))))
         )
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Right[_, _]]
         result.getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil))) mustBe ResponseWrapper(
@@ -178,7 +178,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
         matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
         retrieveMpeMock(Future.failed(new TimeoutException))
         lazy val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(orchestrator.checkAndRetrieve(request).value)
+          await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         assertThrows[TimeoutException](result)
       }

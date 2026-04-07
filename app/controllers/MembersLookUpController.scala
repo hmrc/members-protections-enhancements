@@ -45,7 +45,7 @@ class MembersLookUpController @Inject() (
   def checkAndRetrieve: Action[JsValue] = identify.async(parse.json) { implicit request =>
     val methodLoggingContext: String = "checkAndRetrieve"
 
-    implicit val requestCorrelationId: CorrelationId = request.getCorrelationId
+    val requestCorrelationId: CorrelationId = request.getCorrelationId
 
     def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId, Some("authenticated"))
 
@@ -63,8 +63,8 @@ class MembersLookUpController @Inject() (
 
     val result =
       for {
-        validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body))
-        response <- orchestrator.checkAndRetrieve(validatedRequest)
+        validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body, requestCorrelationId))
+        response <- orchestrator.checkAndRetrieve(validatedRequest, requestCorrelationId)
       } yield {
         infoLogger(response.correlationId)("Successfully retrieved member's protection record details")
         Ok(Json.toJson(response.responseData)).withHeaders(correlationIdKey -> response.correlationId.value)

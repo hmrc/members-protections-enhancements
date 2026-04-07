@@ -37,8 +37,9 @@ class MembersLookUpOrchestrator @Inject() (
     extends Logging {
 
   def checkAndRetrieve(
-    request: PensionSchemeMemberRequest
-  )(implicit hc: HeaderCarrier, correlationId: CorrelationId): ConnectorResult[ProtectionRecordDetails] = {
+    request: PensionSchemeMemberRequest,
+    correlationId: CorrelationId
+  )(implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] = {
     val methodLoggingContext: String = "checkAndRetrieve"
 
     def idLogString(correlationId: CorrelationId): String = correlationIdLogString(
@@ -58,20 +59,21 @@ class MembersLookUpOrchestrator @Inject() (
 
     infoLogger(correlationId)("Attempting to match supplied member details")
 
-    val result: ConnectorResult[ProtectionRecordDetails] = matchPersonConnector.matchPerson(request).flatMap {
-      case ResponseWrapper(responseCorrelationId, MATCH) =>
-        infoLogger(responseCorrelationId)("Successfully matched supplied member details")
-        doRetrieval(request, Some(methodLoggingContext))(hc, responseCorrelationId)
-      case ResponseWrapper(responseCorrelationId, `NO MATCH`) =>
-        warnLogger(responseCorrelationId)("Could not match supplied member details", None)
-        EitherT[Future, ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
-          Future.successful(
-            Left[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
-              ErrorWrapper(responseCorrelationId, NoMatchError)
+    val result: ConnectorResult[ProtectionRecordDetails] =
+      matchPersonConnector.matchPerson(request, correlationId).flatMap {
+        case ResponseWrapper(responseCorrelationId, MATCH) =>
+          infoLogger(responseCorrelationId)("Successfully matched supplied member details")
+          doRetrieval(request, Some(methodLoggingContext))(hc, responseCorrelationId)
+        case ResponseWrapper(responseCorrelationId, `NO MATCH`) =>
+          warnLogger(responseCorrelationId)("Could not match supplied member details", None)
+          EitherT[Future, ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
+            Future.successful(
+              Left[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
+                ErrorWrapper(responseCorrelationId, NoMatchError)
+              )
             )
           )
-        )
-    }
+      }
 
     result.leftMap { err =>
       warnLogger(err.correlationId)(
@@ -98,7 +100,7 @@ class MembersLookUpOrchestrator @Inject() (
 
     retrieveInfoLogger(correlationId)("Attempting to retrieve member's protection record details")
 
-    retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef).subflatMap {
+    retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef, correlationId).subflatMap {
       case ResponseWrapper(responseCorrelationId, ProtectionRecordDetails(data)) if data.isEmpty =>
         logger.warn(
           secondaryContext = doRetrievalLoggingContext,

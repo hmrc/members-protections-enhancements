@@ -16,25 +16,26 @@
 
 package controllers
 
-import base.UnitBaseSpec
-import cats.data.EitherT
-import controllers.actions.FakePsaIdentifierAction
+import play.api.test.FakeRequest
 import controllers.requests.PensionSchemeMemberRequest
-import controllers.requests.validators.MembersLookUpValidator
-import models.errors.{ErrorWrapper, MpeError}
+import cats.data.EitherT
+import utils.ErrorCodes._
+import controllers.actions.FakePsaIdentifierAction
 import models.response.{ProtectionRecord, ProtectionRecordDetails, ResponseWrapper}
+import play.api.libs.json.{JsValue, Json}
+import org.scalatest.matchers.should.Matchers.shouldBe
+import controllers.requests.validators.MembersLookUpValidator
+import play.api.test.Helpers._
+import org.mockito.Mockito.when
+import base.UnitBaseSpec
 import orchestrators.MembersLookUpOrchestrator
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatest.matchers.should.Matchers.shouldBe
-import play.api.libs.json.{JsValue, Json}
-import play.api.test.FakeRequest
-import play.api.test.Helpers.*
-import utils.ErrorCodes.*
+import models.errors.{ErrorWrapper, MpeError}
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
 
 class MembersLookUpControllerSpec extends UnitBaseSpec {
 
@@ -88,10 +89,10 @@ class MembersLookUpControllerSpec extends UnitBaseSpec {
   "POST /" - {
     "return 200" in {
 
-      when(mockMembersLookUpOrchestrator.checkAndRetrieve(any())(any(), any()))
+      when(mockMembersLookUpOrchestrator.checkAndRetrieve(any(), any())(any()))
         .thenReturn(EitherT(Future.successful(Right(ResponseWrapper(correlationId, responseModel)))))
 
-      when(mockMembersLookUpValidator.validate(any())(any()))
+      when(mockMembersLookUpValidator.validate(any(), any()))
         .thenReturn(Right(requestObject))
 
       val request = FakeRequest(
@@ -107,10 +108,10 @@ class MembersLookUpControllerSpec extends UnitBaseSpec {
       def serviceErrors(error: String, expectedStatus: Int): Unit =
         s"with code $error from backend" in {
 
-          when(mockMembersLookUpOrchestrator.checkAndRetrieve(any())(any(), any()))
+          when(mockMembersLookUpOrchestrator.checkAndRetrieve(any(), any())(any()))
             .thenReturn(EitherT(Future.successful(Left(ErrorWrapper(correlationId, MpeError(error, "error message"))))))
 
-          when(mockMembersLookUpValidator.validate(any())(any()))
+          when(mockMembersLookUpValidator.validate(any(), any()))
             .thenReturn(Right(requestObject))
 
           val request = FakeRequest(

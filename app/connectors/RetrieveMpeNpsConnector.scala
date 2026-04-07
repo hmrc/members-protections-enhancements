@@ -42,10 +42,9 @@ class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
 
   override val source: ErrorSource = RetrieveMpe
 
-  def retrieveMpe(nino: String, psaCheckRef: String)(implicit
+  def retrieveMpe(nino: String, psaCheckRef: String, correlationId: CorrelationId)(implicit
     hc: HeaderCarrier,
-    ec: ExecutionContext,
-    correlationId: CorrelationId
+    ec: ExecutionContext
   ): ConnectorResult[ProtectionRecordDetails] = {
     val retrieveUrl = s"${config.retrieveUrl}/$nino/admin-reference/$psaCheckRef/lookup"
 
