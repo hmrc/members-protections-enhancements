@@ -46,7 +46,7 @@ class MembersLookUpController @Inject() (
 
     val requestCorrelationId: CorrelationId = request.getCorrelationId
 
-    logger.info(s"$requestCorrelationId - Attempting to check for, and retrieve member's protection record details")
+    logger.info(s"Attempting to check for, and retrieve member's protection record details (Correlation ID: ${requestCorrelationId.value})")
 
     val result =
       for {
