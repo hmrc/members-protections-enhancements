@@ -72,7 +72,7 @@ class MembersLookUpOrchestrator @Inject() (
     correlationId: CorrelationId
   ): ConnectorResult[ProtectionRecordDetails] = {
 
-    logger.info(s"Attempting to retrieve member's protection record details (Correlation ID: $correlationId.value)")
+    logger.info(s"Attempting to retrieve member's protection record details (Correlation ID: ${correlationId.value})")
 
     retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef, correlationId).subflatMap {
       case ResponseWrapper(responseCorrelationId, ProtectionRecordDetails(data)) if data.isEmpty =>

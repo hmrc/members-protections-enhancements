@@ -55,7 +55,7 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   ): ConnectorResult[MatchPersonResponse] = {
     val matchIndividualAccountUrl: String = config.matchUrl
 
-    logger.info(s"$correlationId - Attempting to match supplied member details")
+    logger.info(s"Attempting to match supplied member details (Correlation ID: ${correlationId.value})")
 
     EitherT(
       http
