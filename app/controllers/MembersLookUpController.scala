@@ -16,15 +16,15 @@
 
 package controllers
 
-import utils.Logging
 import play.api.mvc.{Action, ControllerComponents}
 import cats.data.EitherT
 import orchestrators.MembersLookUpOrchestrator
 import utils.ErrorCodes._
 import controllers.actions.IdentifierAction
-import play.api.libs.json._
 import controllers.requests.CorrelationId
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.Logging
+import play.api.libs.json._
 import utils.HeaderKey.correlationIdKey
 import controllers.requests.validators.MembersLookUpValidator
 
@@ -43,40 +43,26 @@ class MembersLookUpController @Inject() (
     with Logging {
 
   def checkAndRetrieve: Action[JsValue] = identify.async(parse.json) { implicit request =>
-    val methodLoggingContext: String = "checkAndRetrieve"
 
     val requestCorrelationId: CorrelationId = request.getCorrelationId
 
-    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId, Some("authenticated"))
-
-    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
-      methodLoggingContext,
-      idLogString(correlationId)
-    )
-
-    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
-      methodLoggingContext,
-      idLogString(correlationId)
-    )
-
-    infoLogger(requestCorrelationId)("Attempting to check for, and retrieve member's protection record details")
+    logger.info(s"$requestCorrelationId - Attempting to check for, and retrieve member's protection record details")
 
     val result =
       for {
         validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body, requestCorrelationId))
         response <- orchestrator.checkAndRetrieve(validatedRequest, requestCorrelationId)
       } yield {
-        infoLogger(response.correlationId)("Successfully retrieved member's protection record details")
+        logger.info(s"${response.correlationId} - Successfully retrieved member's protection record details")
         Ok(Json.toJson(response.responseData)).withHeaders(correlationIdKey -> response.correlationId.value)
       }
 
     result.leftMap { errorWrapper =>
-      warnLogger(errorWrapper.correlationId)(
-        "An error occurred while attempting to check for, and retrieve member's protection record details" +
+      logger.warn(
+        s"${errorWrapper.correlationId} - An error occurred while attempting to check for, and retrieve member's protection record details" +
           s"with code: ${errorWrapper.error.code}, " +
           s"message: ${errorWrapper.error.message}, " +
-          s"and source: ${errorWrapper.error.source}",
-        None
+          s"and source: ${errorWrapper.error.source}"
       )
 
       val errorResponse = errorWrapper.error.code match {

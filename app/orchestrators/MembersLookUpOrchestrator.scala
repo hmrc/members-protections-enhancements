@@ -16,12 +16,12 @@
 
 package orchestrators
 
-import utils.Logging
 import models.response.MatchPersonResponse._
 import connectors.{ConnectorResult, MatchPersonNpsConnector, RetrieveMpeNpsConnector}
 import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import cats.data.EitherT
 import models.response.{ProtectionRecordDetails, ResponseWrapper}
+import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import models.errors.{EmptyDataError, ErrorWrapper, NoMatchError}
 
@@ -40,32 +40,16 @@ class MembersLookUpOrchestrator @Inject() (
     request: PensionSchemeMemberRequest,
     correlationId: CorrelationId
   )(implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] = {
-    val methodLoggingContext: String = "checkAndRetrieve"
 
-    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(
-      correlationId = correlationId,
-      requestContext = Some("authenticated, and validated")
-    )
-
-    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
-      secondaryContext = methodLoggingContext,
-      dataLog = idLogString(correlationId)
-    )
-
-    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
-      secondaryContext = methodLoggingContext,
-      dataLog = idLogString(correlationId)
-    )
-
-    infoLogger(correlationId)("Attempting to match supplied member details")
+    logger.info(s"$correlationId - Attempting to match supplied member details")
 
     val result: ConnectorResult[ProtectionRecordDetails] =
       matchPersonConnector.matchPerson(request, correlationId).flatMap {
         case ResponseWrapper(responseCorrelationId, MATCH) =>
-          infoLogger(responseCorrelationId)("Successfully matched supplied member details")
-          doRetrieval(request, Some(methodLoggingContext))(hc, responseCorrelationId)
+          logger.info(s"$responseCorrelationId - Successfully matched supplied member details")
+          doRetrieval(request)(hc, responseCorrelationId)
         case ResponseWrapper(responseCorrelationId, `NO MATCH`) =>
-          warnLogger(responseCorrelationId)("Could not match supplied member details", None)
+          logger.warn(s"$responseCorrelationId - Could not match supplied member details")
           EitherT[Future, ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
             Future.successful(
               Left[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
@@ -76,41 +60,26 @@ class MembersLookUpOrchestrator @Inject() (
       }
 
     result.leftMap { err =>
-      warnLogger(err.correlationId)(
-        s"An error occurred with code: ${err.error.code}, and source: ${err.error.source}",
-        None
+      logger.warn(
+        s"${err.correlationId} - An error occurred with code: ${err.error.code}, and source: ${err.error.source}"
       )
       err
     }
   }
 
-  private def doRetrieval(request: PensionSchemeMemberRequest, extraContext: Some[String])(implicit
+  private def doRetrieval(request: PensionSchemeMemberRequest)(implicit
     headerCarrier: HeaderCarrier,
     correlationId: CorrelationId
   ): ConnectorResult[ProtectionRecordDetails] = {
-    val doRetrievalLoggingContext: String = "doRetrieval"
 
-    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId = correlationId)
-
-    def retrieveInfoLogger(correlationId: CorrelationId): String => Unit = infoLog(
-      secondaryContext = doRetrievalLoggingContext,
-      dataLog = idLogString(correlationId),
-      extraContext = extraContext
-    )
-
-    retrieveInfoLogger(correlationId)("Attempting to retrieve member's protection record details")
+    logger.info(s"$correlationId - Attempting to retrieve member's protection record details")
 
     retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef, correlationId).subflatMap {
       case ResponseWrapper(responseCorrelationId, ProtectionRecordDetails(data)) if data.isEmpty =>
-        logger.warn(
-          secondaryContext = doRetrievalLoggingContext,
-          message = "No protection record details were returned",
-          dataLog = idLogString(responseCorrelationId),
-          extraContext = extraContext
-        )
+        logger.warn("No protection record details were returned")
         Left(ErrorWrapper(responseCorrelationId, EmptyDataError))
       case details =>
-        retrieveInfoLogger(details.correlationId)("Successfully retrieved member's protection record details")
+        logger.info(s"${details.correlationId} - Successfully retrieved member's protection record details")
         Right(details)
     }
   }

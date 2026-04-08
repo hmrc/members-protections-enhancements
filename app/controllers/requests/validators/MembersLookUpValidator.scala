@@ -16,10 +16,10 @@
 
 package controllers.requests.validators
 
-import utils.Logging
 import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import play.api.libs.json._
 import models.errors.{ErrorWrapper, MpeError}
+import play.api.Logging
+import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext
 
@@ -32,23 +32,17 @@ class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) exten
     requestBody: JsValue,
     correlationId: CorrelationId
   ): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
-    val methodLoggingContext: String = "validate"
 
-    val idLogString: String = correlationIdLogString(correlationId)
-    val infoLogger: String => Unit = infoLog(methodLoggingContext, idLogString)
-
-    infoLogger("Attempting to validate supplied request body")
+    logger.info("Attempting to validate supplied request body")
 
     requestBody.validate[PensionSchemeMemberRequest] match {
       case JsSuccess(value, _) =>
-        infoLogger("Request body validation completed successfully")
+        logger.info("Request body validation completed successfully")
         Right(value)
       case JsError(errors) =>
-        logger.errorWithException(
-          secondaryContext = methodLoggingContext,
-          message = s"Request body validation failed",
-          ex = JsResultException(errors),
-          dataLog = idLogString
+        logger.error(
+          s"Request body validation failed",
+          JsResultException(errors)
         )
         Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data")))
     }

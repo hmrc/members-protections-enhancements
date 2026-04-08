@@ -16,20 +16,21 @@
 
 package controllers.actions
 
-import utils.{HeaderKey, Logging}
+import utils.HeaderKey
 import play.api.mvc._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import controllers.requests._
 import config.Constants
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{affinityGroup, authorisedEnrolments, internalId}
 import uk.gov.hmrc.auth.core.retrieve.~
-import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import models.errors._
 import controllers.requests.IdentifierRequest._
 import uk.gov.hmrc.auth.core._
+import play.api.Logging
+import play.api.libs.json.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,35 +49,18 @@ class IdentifierActionImpl @Inject() (
   override def parser: BodyParser[AnyContent] = playBodyParsers
 
   private[actions] def handleWithCorrelationId[A](
-    request: Request[A],
-    extraContext: String
+    request: Request[A]
   )(block: RequestWithCorrelationId[A] => Future[Result]): Future[Result] = {
-    val methodLoggingContext: String = "handleWithCorrelationId"
 
-    val infoLogger: String => Unit = infoLog(
-      secondaryContext = methodLoggingContext,
-      extraContext = Some(extraContext)
-    )
-
-    warnLog(
-      secondaryContext = methodLoggingContext,
-      extraContext = Some(extraContext)
-    )
-
-    val errorLogger: (String, Option[Throwable]) => Unit = errorLog(
-      secondaryContext = methodLoggingContext,
-      extraContext = Some(extraContext)
-    )
-
-    infoLogger("Attempting to retrieve Correlation ID from request headers")
+    logger.info("Attempting to retrieve Correlation ID from request headers")
 
     lazy val result = request.headers
       .get(HeaderKey.correlationIdKey)
       .fold {
-        errorLogger("Correlation ID was missing from request headers", None)
+        logger.error("Correlation ID was missing from request headers")
         Future.successful(InternalServerError(Json.toJson(MissingCorrelationIdError)))
       } { id =>
-        infoLogger("Correlation ID was successfully retrieved from request headers")
+        logger.info("Correlation ID was successfully retrieved from request headers")
         block(RequestWithCorrelationId(request, CorrelationId(id)))
       }
 
@@ -84,49 +68,35 @@ class IdentifierActionImpl @Inject() (
   }
 
   override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
-    val methodLoggingContext: String = "invokeBlock"
+    logger.info("invokeBlock - Attempting to complete authorisation for request")
 
-    logger.info(methodLoggingContext, "Attempting to complete authorisation for request")
-
-    handleWithCorrelationId(request, methodLoggingContext) { req =>
-      val idLogString = correlationIdLogString(req.correlationId)
-
-      val infoLogger: String => Unit = infoLog(
-        secondaryContext = methodLoggingContext,
-        dataLog = idLogString
-      )
-
-      val warnLogger: (String, Option[Throwable]) => Unit = warnLog(
-        secondaryContext = methodLoggingContext,
-        dataLog = idLogString
-      )
-
+    handleWithCorrelationId(request) { req =>
       implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(req)
 
       authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
         .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
           case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
-            infoLogger("Authorisation completed successfully for PSA user")
+            logger.info("Authorisation completed successfully for PSA user")
             block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, req))
           case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
-            infoLogger("Authorisation completed successfully for PSP user")
+            logger.info("Authorisation completed successfully for PSP user")
             block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, req))
           case _ =>
             val err: UnauthorizedException = new UnauthorizedException(
               message = "Unable to retrieve user details or type from authorisation response"
             )
-            warnLogger("Authorisation completed successfully, but could not retrieve user details or type", Some(err))
+            logger.warn("Authorisation completed successfully, but could not retrieve user details or type", err)
             Future.failed(err)
         }
         .recoverWith {
           case _: MissingBearerToken =>
-            warnLogger("Authorisation bearer token could not be found", None)
+            logger.warn("Authorisation bearer token could not be found")
             Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
           case _: AuthorisationException =>
-            warnLogger(s"An authorisation error occurred", None)
+            logger.warn(s"An authorisation error occurred")
             Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
           case _: UnauthorizedException =>
-            errorLog(methodLoggingContext, idLogString)("An unexpected authorisation error occurred", None)
+            logger.error("An unexpected authorisation error occurred")
             Future.successful(InternalServerError(Json.toJson(InternalFaultError)))
         }
     }

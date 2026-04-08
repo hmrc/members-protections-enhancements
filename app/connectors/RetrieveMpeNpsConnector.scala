@@ -16,12 +16,12 @@
 
 package connectors
 
-import utils.Logging
 import config.AppConfig
 import cats.data.EitherT
 import utils.ErrorCodes._
 import models.errors.ErrorSource.RetrieveMpe
 import models.response.{ProtectionRecordDetails, ResponseWrapper}
+import play.api.Logging
 import uk.gov.hmrc.http.client.HttpClientV2
 import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
 import models.errors.{ErrorSource, ErrorWrapper}
@@ -48,20 +48,7 @@ class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   ): ConnectorResult[ProtectionRecordDetails] = {
     val retrieveUrl = s"${config.retrieveUrl}/$nino/admin-reference/$psaCheckRef/lookup"
 
-    val methodLoggingContext: String = "retrieveMpe"
-    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId = correlationId)
-
-    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
-      secondaryContext = methodLoggingContext,
-      dataLog = idLogString(correlationId)
-    )
-
-    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
-      secondaryContext = methodLoggingContext,
-      dataLog = idLogString(correlationId)
-    )
-
-    infoLogger(correlationId)("Attempting to retrieve supplied member's protection record details")
+    logger.info(s"$correlationId - Attempting to retrieve supplied member's protection record details")
 
     EitherT(
       http
@@ -77,20 +64,18 @@ class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
       err => {
         val resultCorrelationId: CorrelationId = checkIdsMatch(
           requestCorrelationId = correlationId,
-          responseCorrelationId = err.correlationId,
-          extraLoggingContext = Some(methodLoggingContext)
+          responseCorrelationId = err.correlationId
         )
 
-        warnLogger(resultCorrelationId)(
-          s"Request to retrieve supplied member's protection record details failed with error: ${err.error}",
-          None
+        logger.warn(
+          s"$resultCorrelationId - Request to retrieve supplied member's protection record details failed with error: ${err.error}"
         )
         err.copy(correlationId = resultCorrelationId)
       },
       resp => {
-        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId, Some(methodLoggingContext))
-        infoLogger(resultCorrelationId)(
-          "Request to retrieve supplied member's protection record details completed successfully"
+        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId)
+        logger.info(
+          s"$resultCorrelationId - Request to retrieve supplied member's protection record details completed successfully"
         )
         resp.copy(correlationId = resultCorrelationId)
       }
