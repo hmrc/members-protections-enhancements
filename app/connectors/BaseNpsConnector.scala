@@ -88,7 +88,6 @@ abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions with Log
     correlationId: CorrelationId
   ): ReadsResponse[Rds] =
     try {
-      logger.info("")
       logger.info(s"Attempting to parse response body string to JSON")
       val responseJson: JsValue = Json.parse(body)
 

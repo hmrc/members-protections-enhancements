@@ -78,7 +78,7 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
       resp => {
         val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId)
         logger.info(
-          s"$resultCorrelationId - Request to match supplied member details completed successfully with result: ${resp.responseData}"
+          s"Request to match supplied member details completed successfully with result: ${resp.responseData} (Correlation ID: ${resultCorrelationId.value})"
         )
         resp.copy(correlationId = resultCorrelationId)
       }

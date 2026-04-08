@@ -48,7 +48,9 @@ class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   ): ConnectorResult[ProtectionRecordDetails] = {
     val retrieveUrl = s"${config.retrieveUrl}/$nino/admin-reference/$psaCheckRef/lookup"
 
-    logger.info(s"Attempting to retrieve supplied member's protection record details (Correlation ID: ${correlationId.value})")
+    logger.info(
+      s"Attempting to retrieve supplied member's protection record details (Correlation ID: ${correlationId.value})"
+    )
 
     EitherT(
       http
@@ -68,14 +70,14 @@ class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
         )
 
         logger.warn(
-          s"$resultCorrelationId - Request to retrieve supplied member's protection record details failed with error: ${err.error}"
+          s"Request to retrieve supplied member's protection record details failed with error: ${err.error} (Correlation ID: ${resultCorrelationId.value})"
         )
         err.copy(correlationId = resultCorrelationId)
       },
       resp => {
         val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId)
         logger.info(
-          s"$resultCorrelationId - Request to retrieve supplied member's protection record details completed successfully"
+          s"Request to retrieve supplied member's protection record details completed successfully (Correlation ID: ${resultCorrelationId.value})"
         )
         resp.copy(correlationId = resultCorrelationId)
       }
