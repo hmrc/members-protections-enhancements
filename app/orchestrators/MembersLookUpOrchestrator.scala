@@ -41,7 +41,7 @@ class MembersLookUpOrchestrator @Inject() (
     correlationId: CorrelationId
   )(implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] = {
 
-    logger.info(s"$correlationId - Attempting to match supplied member details")
+    logger.info(s"Attempting to match supplied member details (Correlation ID: $correlationId.value)")
 
     val result: ConnectorResult[ProtectionRecordDetails] =
       matchPersonConnector.matchPerson(request, correlationId).flatMap {
@@ -61,7 +61,7 @@ class MembersLookUpOrchestrator @Inject() (
 
     result.leftMap { err =>
       logger.warn(
-        s"${err.correlationId} - An error occurred with code: ${err.error.code}, and source: ${err.error.source}"
+        s"An error occurred with code: ${err.error.code}, and source: ${err.error.source} (Correction ID: ${err.correlationId.value})"
       )
       err
     }
@@ -72,14 +72,17 @@ class MembersLookUpOrchestrator @Inject() (
     correlationId: CorrelationId
   ): ConnectorResult[ProtectionRecordDetails] = {
 
-    logger.info(s"$correlationId - Attempting to retrieve member's protection record details")
+    logger.info(s"Attempting to retrieve member's protection record details (Correlation ID: $correlationId.value)")
 
     retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef, correlationId).subflatMap {
       case ResponseWrapper(responseCorrelationId, ProtectionRecordDetails(data)) if data.isEmpty =>
         logger.warn("No protection record details were returned")
         Left(ErrorWrapper(responseCorrelationId, EmptyDataError))
       case details =>
-        logger.info(s"${details.correlationId} - Successfully retrieved member's protection record details")
+        logger
+          .info(
+            s"Successfully retrieved member's protection record details (Correlation ID: ${details.correlationId.value})"
+          )
         Right(details)
     }
   }

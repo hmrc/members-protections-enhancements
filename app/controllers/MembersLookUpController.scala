@@ -53,13 +53,15 @@ class MembersLookUpController @Inject() (
         validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body, requestCorrelationId))
         response <- orchestrator.checkAndRetrieve(validatedRequest, requestCorrelationId)
       } yield {
-        logger.info(s"${response.correlationId} - Successfully retrieved member's protection record details")
+        logger.info(
+          s"Successfully retrieved member's protection record details (Correlation ID: ${response.correlationId.value})"
+        )
         Ok(Json.toJson(response.responseData)).withHeaders(correlationIdKey -> response.correlationId.value)
       }
 
     result.leftMap { errorWrapper =>
       logger.warn(
-        s"${errorWrapper.correlationId} - An error occurred while attempting to check for, and retrieve member's protection record details" +
+        s"An error occurred while attempting to check for, and retrieve member's protection record details (Correlation ID: ${errorWrapper.correlationId.value})" +
           s"with code: ${errorWrapper.error.code}, " +
           s"message: ${errorWrapper.error.message}, " +
           s"and source: ${errorWrapper.error.source}"

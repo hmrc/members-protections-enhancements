@@ -57,7 +57,7 @@ abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions with Log
   ): CorrelationId = {
     if (requestCorrelationId.value != responseCorrelationId.value) {
       logger.error(
-        message = "Correlation ID was either missing from response, or did not match ID from request. " +
+        "Correlation ID was either missing from response, or did not match ID from request. " +
           "Reverting to ID from request for consistency in logs. Be aware of potential ID inconsistencies. " +
           s"Request C-ID: ${requestCorrelationId.value}, Response C-ID: ${responseCorrelationId.value}"
       )
