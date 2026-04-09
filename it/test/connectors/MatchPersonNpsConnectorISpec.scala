@@ -47,7 +47,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
     val connector: MatchPersonNpsConnector = application.injector.instanceOf[MatchPersonNpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val correlationId: CorrelationId = "X-123"
+    val correlationId: CorrelationId = "X-123"
   }
 
   "NpsConnector" -> {
@@ -71,7 +71,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           )
 
           val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-            await(connector.matchPerson(request).value)
+            await(connector.matchPerson(request, correlationId).value)
 
           WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
@@ -96,7 +96,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-          await(connector.matchPerson(request).value)
+          await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
@@ -115,7 +115,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-          await(connector.matchPerson(request).value)
+          await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
@@ -140,7 +140,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-          await(connector.matchPerson(request).value)
+          await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
@@ -165,7 +165,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-          await(connector.matchPerson(request).value)
+          await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
@@ -187,7 +187,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-          await(connector.matchPerson(request).value)
+          await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
@@ -209,7 +209,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
-          await(connector.matchPerson(request).value)
+          await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 

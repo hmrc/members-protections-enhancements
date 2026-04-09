@@ -45,7 +45,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
     val connector: RetrieveMpeNpsConnector = application.injector.instanceOf[RetrieveMpeNpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    implicit val correlationId: CorrelationId = "X-123"
+    val correlationId: CorrelationId = "X-123"
   }
 
   "NpsConnector" -> {
@@ -62,7 +62,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
@@ -80,7 +80,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
@@ -114,7 +114,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
@@ -137,7 +137,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
@@ -183,7 +183,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
@@ -202,7 +202,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
@@ -221,7 +221,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         )
 
         val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
-          await(connector.retrieveMpe(nino, psaCheckRef).value)
+          await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 

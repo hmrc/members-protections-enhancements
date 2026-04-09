@@ -16,13 +16,13 @@
 
 package connectors
 
-import utils.Logging
 import config.AppConfig
 import base.UnitBaseSpec
 import models.errors.ErrorSource.Internal
 import models.response.ResponseWrapper
-import play.api.libs.json.{Json, Reads}
 import models.errors._
+import play.api.Logging
+import play.api.libs.json.{Json, Reads}
 import play.api.http.Status._
 import uk.gov.hmrc.http._
 
@@ -53,8 +53,7 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
         httpMethod = "get",
         url = dummyUrl,
         response = dummyResponse,
-        correlationId = correlationId,
-        extraContext = None
+        correlationId = correlationId
       )
       testResult.error.code mustBe "TEAPOT_TIME"
     }
@@ -65,8 +64,7 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
         httpMethod = "get",
         url = dummyUrl,
         response = dummyResponse,
-        correlationId = correlationId,
-        extraContext = None
+        correlationId = correlationId
       )
       testResult.error.code mustBe "UNEXPECTED_STATUS_ERROR"
     }
@@ -74,10 +72,10 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
 
   "jsonValidation" -> {
     "[jsonValidation] when provided with non-valid JSON should return an error" in {
-      TestObject.jsonValidation[DummyClass]("", correlationId, None) mustBe Left(
+      TestObject.jsonValidation[DummyClass]("", correlationId) mustBe Left(
         ErrorWrapper(correlationId, InternalFaultError)
       )
-      TestObject.jsonValidation[DummyClass]("""{"field"}""", correlationId, None) mustBe Left(
+      TestObject.jsonValidation[DummyClass]("""{"field"}""", correlationId) mustBe Left(
         ErrorWrapper(correlationId, InternalFaultError)
       )
     }
@@ -89,8 +87,7 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
           | "field": 2
           |}
         """.stripMargin,
-        correlationId,
-        None
+        correlationId
       )
 
       res mustBe a[Left[_, _]]
@@ -104,8 +101,7 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
           | "field": "value"
           |}
         """.stripMargin,
-        correlationId,
-        Some("loggingContext")
+        correlationId
       )
 
       res mustBe a[Right[_, _]]

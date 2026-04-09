@@ -28,7 +28,7 @@ import java.time.LocalDate
 
 class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
-  implicit val correlationId: CorrelationId = "X-123"
+  val correlationId: CorrelationId = "X-123"
 
   val validator = new MembersLookUpValidator()
 
@@ -46,7 +46,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
   "MembersDetailsValidator" - {
     "return a valid model" in {
-      validator.validate(json) mustBe Right(model)
+      validator.validate(json, correlationId) mustBe Right(model)
     }
 
     "return an error for missing or invalid firstName and lastName" in {
@@ -59,7 +59,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,
@@ -81,7 +81,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,
@@ -102,7 +102,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId,
@@ -121,7 +121,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,
@@ -143,7 +143,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,
@@ -165,7 +165,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":""
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,
@@ -187,7 +187,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSP  1234 5678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,
@@ -209,7 +209,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      validator.validate(invalidJson) mustBe
+      validator.validate(invalidJson, correlationId) mustBe
         Left(
           ErrorWrapper(
             correlationId = correlationId,

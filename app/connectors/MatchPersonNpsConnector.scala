@@ -16,7 +16,6 @@
 
 package connectors
 
-import utils.Logging
 import play.api.http.ContentTypes
 import config.AppConfig
 import cats.data.EitherT
@@ -24,11 +23,12 @@ import controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
 import utils.ErrorCodes._
 import models.errors.ErrorSource.MatchPerson
 import models.response.{MatchPersonResponse, ResponseWrapper}
-import play.api.libs.json.Json
 import uk.gov.hmrc.http.client.HttpClientV2
 import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
 import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
+import play.api.Logging
+import play.api.libs.json.Json
 import play.api.http.Status._
 import uk.gov.hmrc.http.HeaderCarrier
 import models.errors.{ErrorSource, ErrorWrapper}
@@ -47,28 +47,15 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
   override val source: ErrorSource = MatchPerson
 
   def matchPerson(
-    request: PensionSchemeMemberRequest
+    request: PensionSchemeMemberRequest,
+    correlationId: CorrelationId
   )(implicit
     hc: HeaderCarrier,
-    ec: ExecutionContext,
-    correlationId: CorrelationId
+    ec: ExecutionContext
   ): ConnectorResult[MatchPersonResponse] = {
     val matchIndividualAccountUrl: String = config.matchUrl
 
-    val methodLoggingContext: String = "matchPerson"
-    def idLogString(correlationId: CorrelationId): String = correlationIdLogString(correlationId = correlationId)
-
-    def infoLogger(correlationId: CorrelationId): String => Unit = infoLog(
-      secondaryContext = methodLoggingContext,
-      dataLog = idLogString(correlationId)
-    )
-
-    def warnLogger(correlationId: CorrelationId): (String, Option[Throwable]) => Unit = warnLog(
-      secondaryContext = methodLoggingContext,
-      dataLog = idLogString(correlationId)
-    )
-
-    infoLogger(correlationId)("Attempting to match supplied member details")
+    logger.info(s"Attempting to match supplied member details (Correlation ID: ${correlationId.value})")
 
     EitherT(
       http
@@ -84,18 +71,14 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
         .execute[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
     ).bimap(
       err => {
-        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId, Some(methodLoggingContext))
-
-        warnLogger(resultCorrelationId)(
-          s"Match attempt failed to complete with error: ${err.error}",
-          None
-        )
+        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId)
+        logger.warn(s"Match attempt failed to complete with error: ${err.error} (Correlation ID: ${resultCorrelationId.value})")
         err.copy(correlationId = resultCorrelationId)
       },
       resp => {
-        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId, Some(methodLoggingContext))
-        infoLogger(resultCorrelationId)(
-          s"Request to match supplied member details completed successfully with result: ${resp.responseData}"
+        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId)
+        logger.info(
+          s"Request to match supplied member details completed successfully with result: ${resp.responseData} (Correlation ID: ${resultCorrelationId.value})"
         )
         resp.copy(correlationId = resultCorrelationId)
       }
