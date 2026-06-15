@@ -72,7 +72,9 @@ class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpCl
     ).bimap(
       err => {
         val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId)
-        logger.warn(s"Match attempt failed to complete with error: ${err.error} (Correlation ID: ${resultCorrelationId.value})")
+        logger.warn(
+          s"Match attempt failed to complete with error: ${err.error} (Correlation ID: ${resultCorrelationId.value})"
+        )
         err.copy(correlationId = resultCorrelationId)
       },
       resp => {
