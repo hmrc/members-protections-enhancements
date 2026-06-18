@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,18 @@
 package connectors
 
 import play.api.http.ContentTypes
+import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
 import config.AppConfig
 import cats.data.EitherT
-import controllers.requests.PensionSchemeMemberRequest.matchPersonWrites
-import utils.ErrorCodes._
 import models.errors.ErrorSource.MatchPerson
-import models.response.{MatchPersonResponse, ResponseWrapper}
-import uk.gov.hmrc.http.client.HttpClientV2
-import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import play.api.http.HeaderNames.{AUTHORIZATION, CONTENT_TYPE}
-import play.api.Logging
+import models.response.{MatchPersonResponse, MpeResponse}
 import play.api.libs.json.Json
-import play.api.http.Status._
 import uk.gov.hmrc.http.HeaderCarrier
-import models.errors.{ErrorSource, ErrorWrapper}
+import uk.gov.hmrc.http.client.HttpClientV2
+import models.request.PensionSchemeMemberRequest
+import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
+import models.request.PensionSchemeMemberRequest.matchPersonWrites
+import models.errors.{ErrorSource, MpeError}
 import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import scala.concurrent.ExecutionContext
@@ -41,57 +38,28 @@ import java.net.URI
 
 @Singleton
 class MatchPersonNpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2)
-    extends BaseNpsConnector[MatchPersonResponse]
-    with Logging {
+    extends BaseNpsConnector[MatchPersonResponse] {
 
   override val source: ErrorSource = MatchPerson
 
   def matchPerson(
     request: PensionSchemeMemberRequest,
-    correlationId: CorrelationId
+    correlationId: String
   )(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext
-  ): ConnectorResult[MatchPersonResponse] = {
-    val matchIndividualAccountUrl: String = config.matchUrl
-
-    logger.info(s"Attempting to match supplied member details (Correlation ID: ${correlationId.value})")
-
+  ): ConnectorResult[MatchPersonResponse] =
     EitherT(
       http
-        .post(URI.create(matchIndividualAccountUrl).toURL)
+        .post(URI.create(config.matchUrl).toURL)
         .withBody(Json.toJson(request)(matchPersonWrites))
         .setHeader(
-          (correlationIdKey, correlationId.value),
+          (correlationIdKey, correlationId),
           (govUkOriginatorIdKey, config.govUkOriginatorId),
-          (AUTHORIZATION, authorization()),
+          (AUTHORIZATION, s"Basic ${config.authorizationToken}"),
           (CONTENT_TYPE, ContentTypes.JSON),
           (ENVIRONMENT, config.npsEnv)
         )
-        .execute[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
-    ).bimap(
-      err => {
-        val resultCorrelationId = checkIdsMatch(correlationId, err.correlationId)
-        logger.warn(
-          s"Match attempt failed to complete with error: ${err.error} (Correlation ID: ${resultCorrelationId.value})"
-        )
-        err.copy(correlationId = resultCorrelationId)
-      },
-      resp => {
-        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId)
-        logger.info(
-          s"Request to match supplied member details completed successfully with result: ${resp.responseData} (Correlation ID: ${resultCorrelationId.value})"
-        )
-        resp.copy(correlationId = resultCorrelationId)
-      }
+        .execute[Either[MpeError, MpeResponse[MatchPersonResponse]]]
     )
-  }
-
-  override protected[connectors] val errorMap: Map[Int, String] = Map(
-    BAD_REQUEST -> BAD_REQUEST_ERROR,
-    FORBIDDEN -> FORBIDDEN_ERROR,
-    NOT_FOUND -> NOT_FOUND_ERROR,
-    INTERNAL_SERVER_ERROR -> INTERNAL_ERROR,
-    SERVICE_UNAVAILABLE -> SERVICE_UNAVAILABLE_ERROR
-  )
 }

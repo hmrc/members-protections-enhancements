@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package controllers.requests.validators
+package controllers.validators
 
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import models.errors.{ErrorWrapper, MpeError}
+import models.request.PensionSchemeMemberRequest
+import models.errors.MpeError
 import play.api.Logging
 import play.api.libs.json._
 
@@ -29,22 +29,16 @@ import javax.inject.{Inject, Singleton}
 class MembersLookUpValidator @Inject() (implicit val ec: ExecutionContext) extends Logging {
 
   def validate(
-    requestBody: JsValue,
-    correlationId: CorrelationId
-  ): Either[ErrorWrapper, PensionSchemeMemberRequest] = {
-
-    logger.info("Attempting to validate supplied request body")
-
+    requestBody: JsValue
+  ): Either[MpeError, PensionSchemeMemberRequest] =
     requestBody.validate[PensionSchemeMemberRequest] match {
       case JsSuccess(value, _) =>
-        logger.info("Request body validation completed successfully")
         Right(value)
       case JsError(errors) =>
         logger.error(
           s"Request body validation failed",
           JsResultException(errors)
         )
-        Left(ErrorWrapper(correlationId, MpeError("BAD_REQUEST", "Invalid request data")))
+        Left(MpeError("BAD_REQUEST", "Invalid request data"))
     }
-  }
 }

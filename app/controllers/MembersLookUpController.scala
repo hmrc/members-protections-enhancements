@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,15 @@
 package controllers
 
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import cats.data.EitherT
 import orchestrators.MembersLookUpOrchestrator
 import utils.ErrorCodes._
 import controllers.actions.IdentifierAction
-import controllers.requests.CorrelationId
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import controllers.validators.MembersLookUpValidator
+import utils.HeaderKey.correlationIdKey
 import play.api.Logging
 import play.api.libs.json._
-import utils.HeaderKey.correlationIdKey
-import controllers.requests.validators.MembersLookUpValidator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,40 +42,21 @@ class MembersLookUpController @Inject() (
     with Logging {
 
   def checkAndRetrieve: Action[JsValue] = identify.async(parse.json) { implicit request =>
-
-    val requestCorrelationId: CorrelationId = request.getCorrelationId
-
-    logger.info(
-      s"Attempting to check for, and retrieve member's protection record details (Correlation ID: ${requestCorrelationId.value})"
-    )
-
+    val requestCorrelationId: String = request.correlationId
     val result =
       for {
-        validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body, requestCorrelationId))
+        validatedRequest <- EitherT.fromEither[Future](validator.validate(request.body))
         response <- orchestrator.checkAndRetrieve(validatedRequest, requestCorrelationId)
-      } yield {
-        logger.info(
-          s"Successfully retrieved member's protection record details (Correlation ID: ${response.correlationId.value})"
-        )
-        Ok(Json.toJson(response.responseData)).withHeaders(correlationIdKey -> response.correlationId.value)
+      } yield Ok(Json.toJson(response.responseData)).withHeaders(correlationIdKey -> requestCorrelationId)
+
+    result.leftMap { error =>
+      val errorResponse = error.code match {
+        case BAD_REQUEST_ERROR => BadRequest(Json.toJson(error))
+        case NOT_FOUND_ERROR | NO_MATCH_ERROR | EMPTY_DATA_ERROR => NotFound(Json.toJson(error))
+        case FORBIDDEN_ERROR => Forbidden(Json.toJson(error))
+        case _ => InternalServerError(Json.toJson(error))
       }
-
-    result.leftMap { errorWrapper =>
-      logger.warn(
-        s"An error occurred while attempting to check for, and retrieve member's protection record details (Correlation ID: ${errorWrapper.correlationId.value})" +
-          s"with code: ${errorWrapper.error.code}, " +
-          s"message: ${errorWrapper.error.message}, " +
-          s"and source: ${errorWrapper.error.source}"
-      )
-
-      val errorResponse = errorWrapper.error.code match {
-        case BAD_REQUEST_ERROR => BadRequest(Json.toJson(errorWrapper.error))
-        case NOT_FOUND_ERROR | NO_MATCH_ERROR | EMPTY_DATA_ERROR => NotFound(Json.toJson(errorWrapper.error))
-        case FORBIDDEN_ERROR => Forbidden(Json.toJson(errorWrapper.error))
-        case _ => InternalServerError(Json.toJson(errorWrapper.error))
-      }
-
-      errorResponse.withHeaders(correlationIdKey -> errorWrapper.correlationId.value)
+      errorResponse.withHeaders(correlationIdKey -> requestCorrelationId)
     }.merge
   }
 }

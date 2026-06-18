@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package config
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import play.api.Configuration
 
+import java.util.Base64
 import javax.inject.{Inject, Singleton}
 
 @Singleton
@@ -35,8 +36,9 @@ class AppConfig @Inject() (configuration: Configuration) {
   lazy val matchUrl: String = npsBase + npsContext + s"/${loadConfig("urls.match")}"
   lazy val retrieveUrl: String = npsBase + npsContext + s"/${loadConfig("urls.retrieve")}"
 
-  lazy val npsClientId: String = loadConfig("nps-headers.clientId")
-  lazy val npsSecret: String = loadConfig("nps-headers.secret")
+  private lazy val npsClientId: String = loadConfig("nps-headers.clientId")
+  private lazy val npsSecret: String = loadConfig("nps-headers.secret")
+  lazy val authorizationToken: String = Base64.getEncoder.encodeToString(s"$npsClientId:$npsSecret".getBytes("UTF-8"))
   lazy val npsEnv: String = loadConfig("nps-headers.env")
 
   lazy val govUkOriginatorId: String = loadConfig("nps-headers.govUkOriginatorId")

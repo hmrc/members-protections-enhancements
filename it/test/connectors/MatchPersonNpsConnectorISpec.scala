@@ -19,10 +19,10 @@ package connectors
 import base.ItBaseSpec
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
-import models.errors.{ErrorWrapper, MpeError}
+import models.errors.MpeError
+import models.request.PensionSchemeMemberRequest
 import models.response.MatchPersonResponse.*
-import models.response.{MatchPersonResponse, ResponseWrapper}
+import models.response.{MatchPersonResponse, MpeResponse}
 import play.api.Application
 import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -47,7 +47,7 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
     val connector: MatchPersonNpsConnector = application.injector.instanceOf[MatchPersonNpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val correlationId: CorrelationId = "X-123"
+    val correlationId = "X-123"
   }
 
   "NpsConnector" -> {
@@ -70,13 +70,13 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
             response = aResponse().withStatus(errorStatus).withHeader("correlationId", "X-123")
           )
 
-          val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+          val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
             await(connector.matchPerson(request, correlationId).value)
 
           WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
           result mustBe a[Left[_, _]]
-          result.swap.getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A"))).error.code mustBe errorCode
+          result.swap.getOrElse(MpeError("N/A", "N/A")).code mustBe errorCode
         }
 
       val recognisedErrorScenarios: Map[Int, String] = Map(
@@ -95,15 +95,14 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           response = aResponse().withStatus(IM_A_TEAPOT).withHeader("correlationId", "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+        val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
           await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe "UNEXPECTED_STATUS_ERROR"
       }
 
@@ -114,15 +113,14 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           response = okJson(JsObject.empty.toString()).withHeader("correlationId", "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+        val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
           await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -139,15 +137,14 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           ).withHeader("correlationId", "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+        val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
           await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -164,13 +161,13 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           ).withHeader("correlationId", "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+        val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
           await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Right[_, _]]
-        result.getOrElse(ResponseWrapper(correlationId, `NO MATCH`)).responseData mustBe `MATCH`
+        result.getOrElse(MpeResponse(`NO MATCH`)).responseData mustBe `MATCH`
       }
 
       "[matchPerson] should handle a success response where correlation ID is missing" in new Test {
@@ -186,13 +183,13 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           )
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+        val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
           await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Right[_, _]]
-        result.getOrElse(ResponseWrapper(correlationId, `NO MATCH`)).responseData mustBe `MATCH`
+        result.getOrElse(MpeResponse(`NO MATCH`)).responseData mustBe `MATCH`
       }
 
       "[matchPerson] should handle a success response where correlation ID doesn't match request" in new Test {
@@ -208,13 +205,13 @@ class MatchPersonNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           ).withHeader("correlationId", "nonMatching")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]] =
+        val result: Either[MpeError, MpeResponse[MatchPersonResponse]] =
           await(connector.matchPerson(request, correlationId).value)
 
         WireMock.verify(postRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Right[_, _]]
-        result.getOrElse(ResponseWrapper(correlationId, `NO MATCH`)).responseData mustBe `MATCH`
+        result.getOrElse(MpeResponse(`NO MATCH`)).responseData mustBe `MATCH`
       }
     }
   }

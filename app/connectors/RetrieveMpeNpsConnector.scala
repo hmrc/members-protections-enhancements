@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,15 @@
 
 package connectors
 
+import play.api.http.HeaderNames.AUTHORIZATION
 import config.AppConfig
 import cats.data.EitherT
-import utils.ErrorCodes._
 import models.errors.ErrorSource.RetrieveMpe
-import models.response.{ProtectionRecordDetails, ResponseWrapper}
-import play.api.Logging
+import models.response.{MpeResponse, ProtectionRecordDetails}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.HttpClientV2
 import utils.HeaderKey.{correlationIdKey, govUkOriginatorIdKey, ENVIRONMENT}
-import models.errors.{ErrorSource, ErrorWrapper}
-import controllers.requests.CorrelationId
-import play.api.http.HeaderNames.AUTHORIZATION
-import play.api.http.Status._
-import uk.gov.hmrc.http.HeaderCarrier
+import models.errors.{ErrorSource, MpeError}
 
 import scala.concurrent.ExecutionContext
 
@@ -37,59 +33,23 @@ import java.net.URI
 
 @Singleton
 class RetrieveMpeNpsConnector @Inject() (val config: AppConfig, val http: HttpClientV2)
-    extends BaseNpsConnector[ProtectionRecordDetails]
-    with Logging {
-
+    extends BaseNpsConnector[ProtectionRecordDetails] {
   override val source: ErrorSource = RetrieveMpe
-
-  def retrieveMpe(nino: String, psaCheckRef: String, correlationId: CorrelationId)(implicit
+  def retrieveMpe(nino: String, psaCheckRef: String, correlationId: String)(implicit
     hc: HeaderCarrier,
     ec: ExecutionContext
   ): ConnectorResult[ProtectionRecordDetails] = {
     val retrieveUrl = s"${config.retrieveUrl}/$nino/admin-reference/$psaCheckRef/lookup"
-
-    logger.info(
-      s"Attempting to retrieve supplied member's protection record details (Correlation ID: ${correlationId.value})"
-    )
-
     EitherT(
       http
         .get(URI.create(retrieveUrl).toURL)
         .setHeader(
-          (correlationIdKey, correlationId.value),
+          (correlationIdKey, correlationId),
           (govUkOriginatorIdKey, config.govUkOriginatorId),
-          (AUTHORIZATION, authorization()),
+          (AUTHORIZATION, s"Basic ${config.authorizationToken}"),
           (ENVIRONMENT, config.npsEnv)
         )
-        .execute[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
-    ).bimap(
-      err => {
-        val resultCorrelationId: CorrelationId = checkIdsMatch(
-          requestCorrelationId = correlationId,
-          responseCorrelationId = err.correlationId
-        )
-
-        logger.warn(
-          s"Request to retrieve supplied member's protection record details failed with error: ${err.error} (Correlation ID: ${resultCorrelationId.value})"
-        )
-        err.copy(correlationId = resultCorrelationId)
-      },
-      resp => {
-        val resultCorrelationId = checkIdsMatch(correlationId, resp.correlationId)
-        logger.info(
-          s"Request to retrieve supplied member's protection record details completed successfully (Correlation ID: ${resultCorrelationId.value})"
-        )
-        resp.copy(correlationId = resultCorrelationId)
-      }
+        .execute[Either[MpeError, MpeResponse[ProtectionRecordDetails]]]
     )
   }
-
-  override protected[connectors] val errorMap: Map[Int, String] = Map(
-    BAD_REQUEST -> BAD_REQUEST_ERROR,
-    FORBIDDEN -> FORBIDDEN_ERROR,
-    NOT_FOUND -> NOT_FOUND_ERROR,
-    UNPROCESSABLE_ENTITY -> NOT_FOUND_ERROR,
-    INTERNAL_SERVER_ERROR -> INTERNAL_ERROR,
-    SERVICE_UNAVAILABLE -> SERVICE_UNAVAILABLE_ERROR
-  )
 }

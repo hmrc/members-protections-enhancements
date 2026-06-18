@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package controllers.requests.validators
+package controllers.validators
 
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import base.UnitBaseSpec
 import play.api.libs.json.{JsValue, Json}
-import controllers.requests.validators.MembersLookUpValidator
-import models.errors.{ErrorWrapper, MpeError}
+import models.request.PensionSchemeMemberRequest
+import models.errors.MpeError
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -28,8 +27,7 @@ import java.time.LocalDate
 
 class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
-  val correlationId: CorrelationId = "X-123"
-
+  val errorResult: Left[MpeError, Nothing] = Left(MpeError("BAD_REQUEST", "Invalid request data"))
   val validator = new MembersLookUpValidator()
 
   val json: JsValue = Json.parse("""
@@ -46,7 +44,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
 
   "MembersDetailsValidator" - {
     "return a valid model" in {
-      validator.validate(json, correlationId) mustBe Right(model)
+      validator.validate(json) mustBe Right(model)
     }
 
     "return an error for missing or invalid firstName and lastName" in {
@@ -59,16 +57,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return an error for too long firstName and lastName" in {
@@ -81,16 +70,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return an error for missing or invalid dateOfBirth" in {
@@ -102,13 +82,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId,
-            MpeError("BAD_REQUEST", "Invalid request data")
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return an error for missing nino" in {
@@ -121,16 +95,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return an error for invalid nino" in {
@@ -143,16 +108,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSA12345678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return an error for missing psaCheckRef" in {
@@ -165,16 +121,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":""
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return an error for invalid psaCheckRef" in {
@@ -187,16 +134,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
                                               |    "psaCheckRef":"PSP  1234 5678A"
                                               |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
 
     "return multiple errors" in {
@@ -209,16 +147,7 @@ class MembersDetailsValidatorSpec extends UnitBaseSpec {
           |    "psaCheckRef":"PSA12345678A"
           |}""".stripMargin)
 
-      validator.validate(invalidJson, correlationId) mustBe
-        Left(
-          ErrorWrapper(
-            correlationId = correlationId,
-            error = MpeError(
-              code = "BAD_REQUEST",
-              message = "Invalid request data"
-            )
-          )
-        )
+      validator.validate(invalidJson) mustBe errorResult
     }
   }
 }

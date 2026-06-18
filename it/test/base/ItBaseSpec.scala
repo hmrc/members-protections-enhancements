@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.matching.StringValuePattern
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import controllers.actions.FakePsaIdentifierAction
+import controllers.actions.FakeIdentifierAction
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.time.{Millis, Span}
@@ -43,7 +43,7 @@ abstract class ItBaseSpec
 
   val parsers: BodyParsers.Default = app.injector.instanceOf[BodyParsers.Default]
 
-  val fakePsaIdentifierAction: FakePsaIdentifierAction = new FakePsaIdentifierAction(parsers)
+  val fakeIdentifierAction: FakeIdentifierAction = new FakeIdentifierAction(parsers)
 
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = scaled(Span(500, Millis)), interval = scaled(Span(50, Millis)))

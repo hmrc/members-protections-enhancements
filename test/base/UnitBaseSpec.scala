@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ trait UnitBaseSpec
 
   val parsers: BodyParsers.Default = app.injector.instanceOf[BodyParsers.Default]
 
-  private val fakePsaIdentifierAction: FakePsaIdentifierAction = new FakePsaIdentifierAction(parsers)
+  private val fakePsaIdentifierAction: FakeIdentifierAction = new FakeIdentifierAction(parsers)
 
   protected def applicationBuilder(): GuiceApplicationBuilder =
     new GuiceApplicationBuilder()

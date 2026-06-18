@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,16 @@
  * limitations under the License.
  */
 
-package models.errors
+package models.response
 
-import controllers.requests.CorrelationId
+import base.UnitBaseSpec
+import models.response.MpeResponse
 
-case class ErrorWrapper(correlationId: CorrelationId, error: MpeError)
+class MpeResponseSpec extends UnitBaseSpec {
+  "map" - {
+    "on responseData" in {
+      val mpeResponse = MpeResponse[String]("beans")
+      mpeResponse.map(_.toUpperCase) mustBe MpeResponse[String]("BEANS")
+    }
+  }
+}

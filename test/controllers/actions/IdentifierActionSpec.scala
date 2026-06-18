@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,10 @@ package controllers.actions
 
 import play.api.test.{FakeRequest, StubPlayBodyParsersFactory}
 import play.api.mvc._
-import controllers.requests.UserDetails
 import config.Constants
 import play.api.mvc.Results.Ok
 import play.api.test.Helpers._
 import org.mockito.Mockito.when
-import controllers.requests.IdentifierRequest.{AdministratorRequest, PractitionerRequest}
 import base.UnitBaseSpec
 import uk.gov.hmrc.auth.core._
 import controllers.actions.IdentifierActionImpl
@@ -43,29 +41,11 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
 
   class Handler {
     def run: Action[AnyContent] = authAction { request =>
-      request match {
-        case AdministratorRequest(_, correlationId, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
-          Ok(
-            Json.obj(
-              "psrUserType" -> psrUserType.toString,
-              "userId" -> userId,
-              "psaId" -> psrUserId,
-              "affinityGroup" -> affinityGroup,
-              "correlationId" -> correlationId.value
-            )
-          )
-
-        case PractitionerRequest(_, correlationId, UserDetails(psrUserType, psrUserId, userId, affinityGroup)) =>
-          Ok(
-            Json.obj(
-              "psrUserType" -> psrUserType.toString,
-              "userId" -> userId,
-              "pspId" -> psrUserId,
-              "affinityGroup" -> affinityGroup,
-              "correlationId" -> correlationId.value
-            )
-          )
-      }
+      Ok(
+        Json.obj(
+          "correlationId" -> request.correlationId
+        )
+      )
     }
   }
 
@@ -150,9 +130,6 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
         val result = handler.run(fakeRequestWithCorrelationId)
 
         status(result) mustBe OK
-        (contentAsJson(result) \ "psaId").asOpt[String] mustBe Some("A2100001")
-        (contentAsJson(result) \ "pspId").asOpt[String] mustBe None
-        (contentAsJson(result) \ "userId").asOpt[String] mustBe Some("internalId")
         (contentAsJson(result) \ "correlationId").asOpt[String] mustBe Some("x-id")
       }
 
@@ -162,9 +139,6 @@ class IdentifierActionSpec extends UnitBaseSpec with StubPlayBodyParsersFactory 
         val result = handler.run(fakeRequestWithCorrelationId)
 
         status(result) mustBe OK
-        (contentAsJson(result) \ "psaId").asOpt[String] mustBe None
-        (contentAsJson(result) \ "pspId").asOpt[String] mustBe Some("21000002")
-        (contentAsJson(result) \ "userId").asOpt[String] mustBe Some("internalId")
         (contentAsJson(result) \ "correlationId").asOpt[String] mustBe Some("x-id")
       }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,11 @@
  */
 
 import cats.data.EitherT
-import models.response.ResponseWrapper
-import models.errors.ErrorWrapper
+import models.response.MpeResponse
+import models.errors.MpeError
 
 import scala.concurrent.Future
 
 package object connectors {
-  type ConnectorResult[Resp] = EitherT[Future, ErrorWrapper, ResponseWrapper[Resp]]
+  type ConnectorResult[A] = EitherT[Future, MpeError, MpeResponse[A]]
 }

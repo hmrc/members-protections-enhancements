@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package orchestrators
 
 import models.response.MatchPersonResponse._
 import connectors.{ConnectorResult, MatchPersonNpsConnector, RetrieveMpeNpsConnector}
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import cats.data.EitherT
-import models.response.{ProtectionRecordDetails, ResponseWrapper}
+import models.response.{MpeResponse, ProtectionRecordDetails}
 import play.api.Logging
 import uk.gov.hmrc.http.HeaderCarrier
-import models.errors.{EmptyDataError, ErrorWrapper, NoMatchError}
+import models.request.PensionSchemeMemberRequest
+import models.errors.{EmptyDataError, MpeError, NoMatchError}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -38,52 +38,21 @@ class MembersLookUpOrchestrator @Inject() (
 
   def checkAndRetrieve(
     request: PensionSchemeMemberRequest,
-    correlationId: CorrelationId
-  )(implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] = {
-
-    logger.info(s"Attempting to match supplied member details (Correlation ID: $correlationId.value)")
-
-    val result: ConnectorResult[ProtectionRecordDetails] =
-      matchPersonConnector.matchPerson(request, correlationId).flatMap {
-        case ResponseWrapper(responseCorrelationId, MATCH) =>
-          logger.info(s"$responseCorrelationId - Successfully matched supplied member details")
-          doRetrieval(request)(hc, responseCorrelationId)
-        case ResponseWrapper(responseCorrelationId, `NO MATCH`) =>
-          logger.warn(s"$responseCorrelationId - Could not match supplied member details")
-          EitherT[Future, ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
-            Future.successful(
-              Left[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]](
-                ErrorWrapper(responseCorrelationId, NoMatchError)
-              )
-            )
-          )
-      }
-
-    result.leftMap { err =>
-      logger.warn(
-        s"An error occurred with code: ${err.error.code}, and source: ${err.error.source} (Correction ID: ${err.correlationId.value})"
-      )
-      err
+    correlationId: String
+  )(implicit hc: HeaderCarrier): ConnectorResult[ProtectionRecordDetails] =
+    matchPersonConnector.matchPerson(request, correlationId).flatMap {
+      case MpeResponse(MATCH) =>
+        retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef, correlationId).subflatMap {
+          case MpeResponse(ProtectionRecordDetails(data)) if data.isEmpty =>
+            logger.warn("No protection record details were returned")
+            Left(EmptyDataError)
+          case details =>
+            Right(details)
+        }
+      case MpeResponse(`NO MATCH`) =>
+        logger.warn(s"Could not match supplied member details")
+        EitherT[Future, MpeError, MpeResponse[ProtectionRecordDetails]](
+          Future.successful(Left(NoMatchError))
+        )
     }
-  }
-
-  private def doRetrieval(request: PensionSchemeMemberRequest)(implicit
-    headerCarrier: HeaderCarrier,
-    correlationId: CorrelationId
-  ): ConnectorResult[ProtectionRecordDetails] = {
-
-    logger.info(s"Attempting to retrieve member's protection record details (Correlation ID: ${correlationId.value})")
-
-    retrieveMpeConnector.retrieveMpe(request.identifier, request.psaCheckRef, correlationId).subflatMap {
-      case ResponseWrapper(responseCorrelationId, ProtectionRecordDetails(data)) if data.isEmpty =>
-        logger.warn("No protection record details were returned")
-        Left(ErrorWrapper(responseCorrelationId, EmptyDataError))
-      case details =>
-        logger
-          .info(
-            s"Successfully retrieved member's protection record details (Correlation ID: ${details.correlationId.value})"
-          )
-        Right(details)
-    }
-  }
 }

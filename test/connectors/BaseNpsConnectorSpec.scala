@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package connectors
 
 import config.AppConfig
 import base.UnitBaseSpec
+import utils.ErrorCodes.BAD_REQUEST_ERROR
 import models.errors.ErrorSource.Internal
-import models.response.ResponseWrapper
+import models.response.MpeResponse
 import models.errors._
 import play.api.Logging
 import play.api.libs.json.{Json, Reads}
@@ -35,110 +36,94 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
   }
 
   private object TestObject extends BaseNpsConnector[DummyClass] with Logging {
-    override val errorMap: Map[Int, String] = Map(
-      IM_A_TEAPOT -> "TEAPOT_TIME"
-    )
-
     override val config: AppConfig = mock[AppConfig]
     override val source: ErrorSource = Internal
   }
 
   private val dummyUrl: String = "some-url"
-  private val correlationId = "X-123"
 
   "handleErrorResponse" -> {
     "[handleErrorResponse] handle appropriately for supported error status" in {
-      val dummyResponse = HttpResponse(IM_A_TEAPOT, "{}")
-      lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(
+      val dummyResponse = HttpResponse(BAD_REQUEST, "{}")
+      lazy val testResult: MpeError = TestObject.handleErrorResponse(
         httpMethod = "get",
         url = dummyUrl,
-        response = dummyResponse,
-        correlationId = correlationId
+        response = dummyResponse
       )
-      testResult.error.code mustBe "TEAPOT_TIME"
+      testResult.code mustBe BAD_REQUEST_ERROR
     }
 
     "[handleErrorResponse] handle appropriately for unsupported error status" in {
-      val dummyResponse = HttpResponse(IM_A_TEAPOT + 1, "{}")
-      lazy val testResult: ErrorWrapper = TestObject.handleErrorResponse(
+      val dummyResponse = HttpResponse(BAD_REQUEST + 1, "{}")
+      lazy val testResult = TestObject.handleErrorResponse(
         httpMethod = "get",
         url = dummyUrl,
-        response = dummyResponse,
-        correlationId = correlationId
+        response = dummyResponse
       )
-      testResult.error.code mustBe "UNEXPECTED_STATUS_ERROR"
+      testResult.code mustBe "UNEXPECTED_STATUS_ERROR"
     }
   }
 
   "jsonValidation" -> {
     "[jsonValidation] when provided with non-valid JSON should return an error" in {
-      TestObject.jsonValidation[DummyClass]("", correlationId) mustBe Left(
-        ErrorWrapper(correlationId, InternalFaultError)
-      )
-      TestObject.jsonValidation[DummyClass]("""{"field"}""", correlationId) mustBe Left(
-        ErrorWrapper(correlationId, InternalFaultError)
-      )
+      TestObject.jsonValidation[DummyClass]("") mustBe Left(InternalFaultError)
+      TestObject.jsonValidation[DummyClass]("""{"field"}""") mustBe Left(InternalFaultError)
     }
 
     "[jsonValidation] when provided with valid JSON which breaks validation rules should return an error" in {
-      lazy val res: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.jsonValidation[DummyClass](
+      lazy val res: Either[MpeError, MpeResponse[DummyClass]] = TestObject.jsonValidation[DummyClass](
         """
           |{
           | "field": 2
           |}
-        """.stripMargin,
-        correlationId
+        """.stripMargin
       )
 
       res mustBe a[Left[_, _]]
-      res mustBe Left(ErrorWrapper(correlationId, InternalFaultError))
+      res mustBe Left(InternalFaultError)
     }
 
     "[jsonValidation] when provided with valid JSON should return expected data model" in {
-      val res: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.jsonValidation[DummyClass](
+      val res: Either[MpeError, MpeResponse[DummyClass]] = TestObject.jsonValidation[DummyClass](
         """
           |{
           | "field": "value"
           |}
-        """.stripMargin,
-        correlationId
+        """.stripMargin
       )
 
       res mustBe a[Right[_, _]]
-      res.getOrElse(ResponseWrapper(correlationId, DummyClass("N/A"))) mustBe ResponseWrapper(
-        correlationId,
-        DummyClass("value")
-      )
+      res.getOrElse(MpeResponse(DummyClass("N/A"))) mustBe MpeResponse(DummyClass("value"))
     }
   }
 
   "httpReads" -> {
     "[httpReads] should return an error for an expected error status" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+      val result: Either[MpeError, MpeResponse[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
-          response = HttpResponse(IM_A_TEAPOT, "")
+          response = HttpResponse(BAD_REQUEST, "")
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "TEAPOT_TIME"
+      result.swap.getOrElse(InternalFaultError).code mustBe BAD_REQUEST_ERROR
     }
 
     "[httpReads] should handle appropriately for an unexpected status code" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+      val result: Either[MpeError, MpeResponse[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
-          response = HttpResponse(IM_A_TEAPOT + 1, "")
+          response = HttpResponse(BAD_REQUEST + 1, "")
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "UNEXPECTED_STATUS_ERROR"
+      result.swap.getOrElse(InternalFaultError).code mustBe "UNEXPECTED_STATUS_ERROR"
     }
 
     "[httpReads] should handle appropriately for a success" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+      val result: Either[MpeError, MpeResponse[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -146,11 +131,11 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Right[_, _]]
-      result.getOrElse(ResponseWrapper(correlationId, DummyClass("N/A"))).responseData.field mustBe "value"
+      result.getOrElse(MpeResponse(DummyClass("N/A"))).responseData.field mustBe "value"
     }
 
     "[httpReads] of GET method should handle appropriately for a success with no response body" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+      val result: Either[MpeError, MpeResponse[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -158,11 +143,11 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe EmptyDataError.code
+      result.swap.getOrElse(InternalFaultError).code mustBe EmptyDataError.code
     }
 
     "[httpReads] of GET method should handle appropriately for a success with empty json response" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+      val result: Either[MpeError, MpeResponse[DummyClass]] = TestObject.httpReads
         .read(
           method = "GET",
           url = dummyUrl,
@@ -170,11 +155,11 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe EmptyDataError.code
+      result.swap.getOrElse(InternalFaultError).code mustBe EmptyDataError.code
     }
 
     "[httpReads] of POST method should handle appropriately for a success with no response body" in {
-      val result: Either[ErrorWrapper, ResponseWrapper[DummyClass]] = TestObject.httpReads
+      val result: Either[MpeError, MpeResponse[DummyClass]] = TestObject.httpReads
         .read(
           method = "POST",
           url = dummyUrl,
@@ -182,7 +167,7 @@ class BaseNpsConnectorSpec extends UnitBaseSpec {
         )
 
       result mustBe a[Left[_, _]]
-      result.swap.getOrElse(ErrorWrapper(correlationId, InternalFaultError)).error.code mustBe "INTERNAL_SERVER_ERROR"
+      result.swap.getOrElse(InternalFaultError).code mustBe "INTERNAL_SERVER_ERROR"
     }
   }
 
