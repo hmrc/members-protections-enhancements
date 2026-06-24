@@ -26,7 +26,7 @@ case class ProtectionRecord(
   lumpSumAmount: Option[Int],
   lumpSumPercentage: Option[Int],
   enhancementFactor: Option[BigDecimal]
-                           )
+)
 
 object ProtectionRecord {
   implicit val format: OFormat[ProtectionRecord] = Json.format[ProtectionRecord]
