@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,23 +19,22 @@ package controllers.actions
 import utils.HeaderKey
 import play.api.mvc._
 import com.google.inject.{ImplementedBy, Inject, Singleton}
-import controllers.requests._
 import config.Constants
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{affinityGroup, authorisedEnrolments, internalId}
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
+import models.request.RequestWithCorrelationId
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import play.api.mvc.Results.{InternalServerError, Unauthorized}
 import models.errors._
-import controllers.requests.IdentifierRequest._
-import uk.gov.hmrc.auth.core._
 import play.api.Logging
 import play.api.libs.json.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[IdentifierActionImpl])
-trait IdentifierAction extends ActionBuilder[IdentifierRequest, AnyContent]
+trait IdentifierAction extends ActionBuilder[RequestWithCorrelationId, AnyContent]
 
 @Singleton
 class IdentifierActionImpl @Inject() (
@@ -48,39 +47,31 @@ class IdentifierActionImpl @Inject() (
 
   override def parser: BodyParser[AnyContent] = playBodyParsers
 
-  private[actions] def handleWithCorrelationId[A](
+  private def handleWithCorrelationId[A](
     request: Request[A]
-  )(block: RequestWithCorrelationId[A] => Future[Result]): Future[Result] = {
-
-    logger.info("Attempting to retrieve Correlation ID from request headers")
-
-    lazy val result = request.headers
+  )(block: RequestWithCorrelationId[A] => Future[Result]): Future[Result] =
+    request.headers
       .get(HeaderKey.correlationIdKey)
       .fold {
         logger.error("Correlation ID was missing from request headers")
         Future.successful(InternalServerError(Json.toJson(MissingCorrelationIdError)))
       } { id =>
-        logger.info("Correlation ID was successfully retrieved from request headers")
-        block(RequestWithCorrelationId(request, CorrelationId(id)))
+        block(RequestWithCorrelationId(request, id))
       }
 
-    result
-  }
-
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] = {
-    logger.info("invokeBlock - Attempting to complete authorisation for request")
-
+  override def invokeBlock[A](
+    request: Request[A],
+    block: RequestWithCorrelationId[A] => Future[Result]
+  ): Future[Result] =
     handleWithCorrelationId(request) { req =>
       implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(req)
 
       authorised(Enrolment(Constants.psaEnrolmentKey).or(Enrolment(Constants.pspEnrolmentKey)))
         .retrieve(internalId.and(affinityGroup).and(authorisedEnrolments)) {
-          case Some(internalId) ~ Some(affGroup) ~ IsPSA(psaId) =>
-            logger.info("Authorisation completed successfully for PSA user")
-            block(AdministratorRequest(affGroup, internalId, psaId.value, UserType.PSA, req))
-          case Some(internalId) ~ Some(affGroup) ~ IsPSP(pspId) =>
-            logger.info("Authorisation completed successfully for PSP user")
-            block(PractitionerRequest(affGroup, internalId, pspId.value, UserType.PSP, req))
+          case Some(_) ~ Some(_) ~ IsPSA(_) =>
+            block(req)
+          case Some(_) ~ Some(_) ~ IsPSP(_) =>
+            block(req)
           case _ =>
             val err: UnauthorizedException = new UnauthorizedException(
               message = "Unable to retrieve user details or type from authorisation response"
@@ -100,7 +91,6 @@ class IdentifierActionImpl @Inject() (
             Future.successful(InternalServerError(Json.toJson(InternalFaultError)))
         }
     }
-  }
 
   private object IsPSA {
     def unapply(enrolments: Enrolments): Option[EnrolmentIdentifier] =

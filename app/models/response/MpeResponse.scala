@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,6 @@
 
 package models.response
 
-import base.UnitBaseSpec
-import models.response.ResponseWrapper
-
-class ResponseWrapperSpec extends UnitBaseSpec {
-  "map" - {
-    "on responseData" in {
-      val responseWrapper = ResponseWrapper[String]("my id", "beans")
-      responseWrapper.map(_.toUpperCase) mustBe ResponseWrapper[String]("my id", "BEANS")
-    }
-  }
+case class MpeResponse[+A](responseData: A) {
+  def map[B](f: A => B): MpeResponse[B] = MpeResponse(f(responseData))
 }

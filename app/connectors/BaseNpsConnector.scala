@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,137 +15,86 @@
  */
 
 package connectors
-
-import controllers.requests.CorrelationId
-import com.fasterxml.jackson.core.JsonParseException
-import utils.ErrorCodes.REDACTED
-import models.response.ResponseWrapper
+import config.AppConfig
+import utils.ErrorCodes._
+import models.response.MpeResponse
 import utils.HeaderKey.correlationIdKey
 import models.errors._
-import com.fasterxml.jackson.databind.JsonMappingException
-import config.AppConfig
 import play.api.Logging
 import play.api.libs.json._
 import play.api.http.Status._
 import uk.gov.hmrc.http.{HttpErrorFunctions, HttpReads, HttpResponse}
 
-import java.util.Base64
-
 abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions with Logging {
   val config: AppConfig
   val source: ErrorSource
 
-  private def retrieveCorrelationId(response: HttpResponse): CorrelationId = CorrelationId(
-    response.header(correlationIdKey).getOrElse("N/A")
-  )
-
-  protected[connectors] def authorization(): String = {
-    val clientId = config.npsClientId
-    val secret = config.npsSecret
-
-    val encoded = Base64.getEncoder.encodeToString(s"$clientId:$secret".getBytes("UTF-8"))
-    s"Basic $encoded"
-  }
-
-  private type ReadsResponse[Wrapped] = Either[ErrorWrapper, ResponseWrapper[Wrapped]]
-
-  protected[connectors] val errorMap: Map[Int, String]
-
-  protected[connectors] def checkIdsMatch(
-    requestCorrelationId: CorrelationId,
-    responseCorrelationId: CorrelationId
-  ): CorrelationId = {
-    if (requestCorrelationId.value != responseCorrelationId.value) {
-      logger.error(
-        "Correlation ID was either missing from response, or did not match ID from request. " +
-          "Reverting to ID from request for consistency in logs. Be aware of potential ID inconsistencies. " +
-          s"Request C-ID: ${requestCorrelationId.value}, Response C-ID: ${responseCorrelationId.value}"
-      )
-    }
-
-    requestCorrelationId
-  }
+  private type ReadsResponse[A] = Either[MpeError, MpeResponse[A]]
 
   implicit def httpReads: HttpReads[ReadsResponse[Resp]] = (method: String, url: String, response: HttpResponse) => {
-    val correlationId: CorrelationId = retrieveCorrelationId(response)
+    response.header(correlationIdKey).getOrElse("N/A")
 
     if (response.status == OK) {
       if (method == "GET" && (response.body.isEmpty || response.json == JsObject.empty)) {
-        logger.info("HTTP response contained success status with an empty body. Converting to EmptyDataError")
-        Left(ErrorWrapper(correlationId, EmptyDataError))
+        Left(EmptyDataError)
       } else {
-        logger.info("HTTP response contained success status with a non-empty body. Attempting to parse response")
-        jsonValidation[Resp](response.body, correlationId)
+        jsonValidation[Resp](response.body)
       }
     } else {
       logger.warn(s"HTTP response contained error status: ${response.status}")
-      Left(handleErrorResponse(method, url, response, correlationId))
+      Left(handleErrorResponse(method, url, response))
     }
   }
 
   protected[connectors] def jsonValidation[Rds: Reads](
-    body: String,
-    correlationId: CorrelationId
+    body: String
   ): ReadsResponse[Rds] =
-    try {
-      logger.info(s"Attempting to parse response body string to JSON")
-      val responseJson: JsValue = Json.parse(body)
-
-      logger.info("Successfully parsed response body string to JSON. Validating against expected format")
-
-      responseJson.validate[Rds] match {
+    try
+      Json.parse(body).validate[Rds] match {
         case JsSuccess(value, _) =>
-          logger.info("Successfully parsed response body JSON to expected format")
-          Right[ErrorWrapper, ResponseWrapper[Rds]](ResponseWrapper(correlationId, value)).withLeft
+          Right[MpeError, MpeResponse[Rds]](MpeResponse(value)).withLeft
         case JsError(errors) =>
           logger.error(
             s"Failed to parse response body JSON to expected format",
             JsResultException(errors)
           )
-          Left(ErrorWrapper(correlationId, InternalFaultError))
+          Left(InternalFaultError)
       }
-    } catch {
-      case ex: JsonParseException =>
+    catch {
+      case ex: Throwable =>
         logger.error(
           s"Failed to parse response body string to JSON",
           ex
         )
-        Left(ErrorWrapper(correlationId, InternalFaultError))
-      case ex: JsonMappingException =>
-        logger.error(
-          s"Failed to parse response body string to JSON",
-          ex
-        )
-        Left(ErrorWrapper(correlationId, InternalFaultError))
+        Left(InternalFaultError)
     }
 
   protected[connectors] def handleErrorResponse(
     httpMethod: String,
     url: String,
-    response: HttpResponse,
-    correlationId: CorrelationId
-  ): ErrorWrapper = {
-
-    logger.info(s"Attempting to check error response status against supported error scenarios")
-
+    response: HttpResponse
+  ): MpeError = {
+    val errorMap: Map[Int, String] = Map(
+      BAD_REQUEST -> BAD_REQUEST_ERROR,
+      FORBIDDEN -> FORBIDDEN_ERROR,
+      NOT_FOUND -> NOT_FOUND_ERROR,
+      INTERNAL_SERVER_ERROR -> INTERNAL_ERROR,
+      SERVICE_UNAVAILABLE -> SERVICE_UNAVAILABLE_ERROR,
+      UNPROCESSABLE_ENTITY -> NOT_FOUND_ERROR
+    )
     errorMap.get(response.status) match {
       case Some(errorCode) =>
         val errorMessage: String = upstreamResponseMessage(
           verbName = httpMethod,
           url = url,
           status = response.status,
-          responseBody = REDACTED
+          responseBody = "REDACTED"
         )
         logger.warn(errorMessage)
-        ErrorWrapper(correlationId, MpeError(errorCode, errorMessage, source))
+        MpeError(errorCode, errorMessage, source)
       case None =>
         logger.warn(s"Error response status: ${response.status} did not match supported error scenarios")
-        ErrorWrapper(correlationId, UnexpectedStatusError)
+        UnexpectedStatusError
     }
   }
 }
-
-class UnrecognisedHttpResponseException(method: String, url: String, response: HttpResponse)
-    extends Exception(
-      s"$method to $url failed with unexpected status ${response.status}"
-    )

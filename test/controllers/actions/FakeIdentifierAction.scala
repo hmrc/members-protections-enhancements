@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,29 +17,21 @@
 package controllers.actions
 
 import play.api.mvc._
-import controllers.requests.{CorrelationId, IdentifierRequest, RequestWithCorrelationId}
 import controllers.actions.IdentifierAction
-import controllers.requests.UserType.PSP
-import controllers.requests.IdentifierRequest.PractitionerRequest
-import uk.gov.hmrc.auth.core.AffinityGroup
+import models.request.RequestWithCorrelationId
 
 import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.Inject
 
-class FakePspIdentifierAction @Inject() (bodyParsers: BodyParsers.Default) extends IdentifierAction {
+class FakeIdentifierAction @Inject() (bodyParsers: BodyParsers.Default) extends IdentifierAction {
   override def parser: BodyParser[AnyContent] = bodyParsers
   override protected def executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
-  override def invokeBlock[A](request: Request[A], block: IdentifierRequest[A] => Future[Result]): Future[Result] =
-    block(
-      PractitionerRequest(
-        affGroup = AffinityGroup.Individual,
-        userId = "id",
-        pspId = "21000002",
-        psrUserType = PSP,
-        request = RequestWithCorrelationId(request, CorrelationId("someId"))
-      )
-    )
+  override def invokeBlock[A](
+    request: Request[A],
+    block: RequestWithCorrelationId[A] => Future[Result]
+  ): Future[Result] =
+    block(RequestWithCorrelationId(request, "someId"))
 
 }

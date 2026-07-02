@@ -19,9 +19,8 @@ package connectors
 import base.ItBaseSpec
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import controllers.requests.CorrelationId
-import models.errors.{EmptyDataError, ErrorWrapper, MpeError}
-import models.response.{ProtectionRecord, ProtectionRecordDetails, ResponseWrapper}
+import models.errors.{EmptyDataError, MpeError}
+import models.response.{MpeResponse, ProtectionRecord, ProtectionRecordDetails}
 import org.scalactic.Prettifier.default
 import play.api.Application
 import play.api.http.Status.*
@@ -45,7 +44,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
     val connector: RetrieveMpeNpsConnector = application.injector.instanceOf[RetrieveMpeNpsConnector]
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val correlationId: CorrelationId = "X-123"
+    val correlationId = "X-123"
   }
 
   "NpsConnector" -> {
@@ -58,36 +57,34 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns an unrecognised error code" in new Test {
         stubGet(
           url = npsUrl,
-          response = aResponse().withStatus(IM_A_TEAPOT).withHeader(correlationId.value, "X-123")
+          response = aResponse().withStatus(IM_A_TEAPOT).withHeader(correlationId, "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe "UNEXPECTED_STATUS_ERROR"
       }
 
       "[retrieveMpe] should return the expected result when NPS returns an unparsable OK response" in new Test {
         stubGet(
           url = npsUrl,
-          response = okJson("").withHeader(correlationId.value, "X-123")
+          response = okJson("").withHeader(correlationId, "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe EmptyDataError.code
       }
 
@@ -113,15 +110,14 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           )
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe "INTERNAL_SERVER_ERROR"
       }
 
@@ -133,18 +129,17 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
               |{
               |}
             """.stripMargin
-          ).withHeader(correlationId.value, "X-123")
+          ).withHeader(correlationId, "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Left[_, _]]
         result.swap
-          .getOrElse(ErrorWrapper(correlationId, MpeError("N/A", "N/A")))
-          .error
+          .getOrElse(MpeError("N/A", "N/A"))
           .code mustBe EmptyDataError.code
       }
 
@@ -155,8 +150,7 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
         protectedAmount = Some(1),
         lumpSumAmount = Some(1),
         lumpSumPercentage = Some(1),
-        enhancementFactor = Some(0.5),
-        pensionCreditLegislation = None
+        enhancementFactor = Some(0.5)
       )
 
       val recordJsonString: String =
@@ -179,17 +173,17 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
       "[retrieveMpe] should return the expected result when NPS returns a valid OK response" in new Test {
         stubGet(
           url = npsUrl,
-          response = okJson(recordJsonString).withHeader(correlationId.value, "X-123")
+          response = okJson(recordJsonString).withHeader(correlationId, "X-123")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Right[_, _]]
         result
-          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
+          .getOrElse(MpeResponse(ProtectionRecordDetails(Nil)))
           .responseData
           .protectionRecords
           .head mustBe record
@@ -201,14 +195,14 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           response = okJson(recordJsonString)
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Right[_, _]]
         result
-          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
+          .getOrElse(MpeResponse(ProtectionRecordDetails(Nil)))
           .responseData
           .protectionRecords
           .head mustBe record
@@ -220,14 +214,14 @@ class RetrieveMpeNpsConnectorISpec extends ItBaseSpec with DefaultAwaitTimeout {
           response = okJson(recordJsonString).withHeader("correlationId", "nonMatching")
         )
 
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(connector.retrieveMpe(nino, psaCheckRef, correlationId).value)
 
         WireMock.verify(getRequestedFor(urlEqualTo(npsUrl)))
 
         result mustBe a[Right[_, _]]
         result
-          .getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))
+          .getOrElse(MpeResponse(ProtectionRecordDetails(Nil)))
           .responseData
           .protectionRecords
           .head mustBe record

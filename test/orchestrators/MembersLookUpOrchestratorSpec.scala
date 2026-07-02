@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
 package orchestrators
 import models.response.MatchPersonResponse.{`NO MATCH`, MATCH}
 import connectors.{ConnectorResult, MatchPersonNpsConnector, RetrieveMpeNpsConnector}
-import controllers.requests.{CorrelationId, PensionSchemeMemberRequest}
 import cats.data.EitherT
 import models.errors.ErrorSource.MatchPerson
 import models.response._
 import uk.gov.hmrc.http.HeaderCarrier
 import org.mockito.stubbing.OngoingStubbing
+import models.request.PensionSchemeMemberRequest
 import org.mockito.ArgumentMatchers
 import models.errors._
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -43,7 +43,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     val orchestrator: MembersLookUpOrchestrator = new MembersLookUpOrchestrator(matchConnector, retrieveConnector)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val correlationId: CorrelationId = "X-123"
+    val correlationId = "X-123"
 
     val request: PensionSchemeMemberRequest = PensionSchemeMemberRequest(
       firstName = "Paul",
@@ -60,12 +60,11 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       protectedAmount = Some(1),
       lumpSumAmount = Some(1),
       lumpSumPercentage = Some(1),
-      enhancementFactor = Some(0.5),
-      pensionCreditLegislation = None
+      enhancementFactor = Some(0.5)
     )
 
     def matchPersonMock(
-      res: Future[Either[ErrorWrapper, ResponseWrapper[MatchPersonResponse]]]
+      res: Future[Either[MpeError, MpeResponse[MatchPersonResponse]]]
     ): OngoingStubbing[ConnectorResult[MatchPersonResponse]] =
       when(
         matchConnector.matchPerson(
@@ -78,7 +77,7 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
       ).thenReturn(EitherT(res))
 
     def retrieveMpeMock(
-      res: Future[Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]]]
+      res: Future[Either[MpeError, MpeResponse[ProtectionRecordDetails]]]
     ): OngoingStubbing[ConnectorResult[ProtectionRecordDetails]] =
       when(
         retrieveConnector.retrieveMpe(
@@ -96,88 +95,72 @@ class MembersLookUpOrchestratorSpec extends UnitBaseSpec {
     "checkAndRetrieve" -> {
       "should return the expected result when match person check fails" in new Test {
         matchPersonMock(
-          Future.successful(Left(ErrorWrapper(correlationId, InternalFaultError.copy(source = MatchPerson))))
+          Future.successful(Left(InternalFaultError.copy(source = MatchPerson)))
         )
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
-        result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
-          correlationId,
-          InternalFaultError.copy(source = MatchPerson)
-        )
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe InternalFaultError.copy(source = MatchPerson)
       }
 
       "should return the expected result when match person check returns NO MATCH" in new Test {
-        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, `NO MATCH`))))
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        matchPersonMock(Future.successful(Right(MpeResponse(`NO MATCH`))))
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
-        result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
-          correlationId,
-          NoMatchError
-        )
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe NoMatchError
       }
 
       "should return the expected result when MPE retrieval fails" in new Test {
-        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
-        retrieveMpeMock(Future.successful(Left(ErrorWrapper(correlationId, UnexpectedStatusError))))
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        matchPersonMock(Future.successful(Right(MpeResponse(MATCH))))
+        retrieveMpeMock(Future.successful(Left(UnexpectedStatusError)))
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
-        result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
-          correlationId,
-          UnexpectedStatusError
-        )
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe UnexpectedStatusError
       }
 
       "should return the expected result when no supported data exists" in new Test {
-        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
-        retrieveMpeMock(Future.successful(Right(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil)))))
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        matchPersonMock(Future.successful(Right(MpeResponse(MATCH))))
+        retrieveMpeMock(Future.successful(Right(MpeResponse(ProtectionRecordDetails(Nil)))))
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
-        result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
-          correlationId,
-          EmptyDataError
-        )
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe EmptyDataError
       }
 
       "should return the EmptyDataError result when no data exists" in new Test {
-        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
-        retrieveMpeMock(Future.successful(Left(ErrorWrapper(correlationId, EmptyDataError))))
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        matchPersonMock(Future.successful(Right(MpeResponse(MATCH))))
+        retrieveMpeMock(Future.successful(Left(EmptyDataError)))
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Left[_, _]]
-        result.swap.getOrElse(ErrorWrapper(correlationId, InvalidBearerTokenError)) mustBe ErrorWrapper(
-          correlationId,
-          EmptyDataError
-        )
+        result.swap.getOrElse(InvalidBearerTokenError) mustBe EmptyDataError
       }
 
       "should return the expected result when both calls succeeds" in new Test {
-        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
+        matchPersonMock(Future.successful(Right(MpeResponse(MATCH))))
         retrieveMpeMock(
-          Future.successful(Right(ResponseWrapper(correlationId, ProtectionRecordDetails(Seq(retrieveResponse)))))
+          Future.successful(Right(MpeResponse(ProtectionRecordDetails(Seq(retrieveResponse)))))
         )
-        val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         result mustBe a[Right[_, _]]
-        result.getOrElse(ResponseWrapper(correlationId, ProtectionRecordDetails(Nil))) mustBe ResponseWrapper(
-          correlationId,
+        result.getOrElse(MpeResponse(ProtectionRecordDetails(Nil))) mustBe MpeResponse(
           ProtectionRecordDetails(Seq(retrieveResponse))
         )
       }
 
       "should handle appropriately for a fatal error" in new Test {
-        matchPersonMock(Future.successful(Right(ResponseWrapper(correlationId, MATCH))))
+        matchPersonMock(Future.successful(Right(MpeResponse(MATCH))))
         retrieveMpeMock(Future.failed(new TimeoutException))
-        lazy val result: Either[ErrorWrapper, ResponseWrapper[ProtectionRecordDetails]] =
+        lazy val result: Either[MpeError, MpeResponse[ProtectionRecordDetails]] =
           await(orchestrator.checkAndRetrieve(request, correlationId).value)
 
         assertThrows[TimeoutException](result)

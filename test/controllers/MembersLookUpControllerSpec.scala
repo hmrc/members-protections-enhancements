@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,20 @@
 package controllers
 
 import play.api.test.FakeRequest
-import controllers.requests.PensionSchemeMemberRequest
 import cats.data.EitherT
 import utils.ErrorCodes._
-import controllers.actions.FakePsaIdentifierAction
-import models.response.{ProtectionRecord, ProtectionRecordDetails, ResponseWrapper}
+import controllers.actions.FakeIdentifierAction
+import models.response.{MpeResponse, ProtectionRecord, ProtectionRecordDetails}
 import play.api.libs.json.{JsValue, Json}
+import controllers.validators.MembersLookUpValidator
 import org.scalatest.matchers.should.Matchers.shouldBe
-import controllers.requests.validators.MembersLookUpValidator
+import models.request.PensionSchemeMemberRequest
 import play.api.test.Helpers._
 import org.mockito.Mockito.when
 import base.UnitBaseSpec
 import orchestrators.MembersLookUpOrchestrator
 import org.mockito.ArgumentMatchers.any
-import models.errors.{ErrorWrapper, MpeError}
+import models.errors.MpeError
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -44,7 +44,7 @@ class MembersLookUpControllerSpec extends UnitBaseSpec {
 
   private val controller = new MembersLookUpController(
     stubMessagesControllerComponents(),
-    new FakePsaIdentifierAction(parsers),
+    new FakeIdentifierAction(parsers),
     mockMembersLookUpOrchestrator,
     mockMembersLookUpValidator
   )
@@ -70,8 +70,7 @@ class MembersLookUpControllerSpec extends UnitBaseSpec {
         protectedAmount = Some(1),
         lumpSumAmount = Some(1),
         lumpSumPercentage = Some(1),
-        enhancementFactor = Some(0.5),
-        pensionCreditLegislation = None
+        enhancementFactor = Some(0.5)
       )
     )
   )
@@ -90,9 +89,9 @@ class MembersLookUpControllerSpec extends UnitBaseSpec {
     "return 200" in {
 
       when(mockMembersLookUpOrchestrator.checkAndRetrieve(any(), any())(any()))
-        .thenReturn(EitherT(Future.successful(Right(ResponseWrapper(correlationId, responseModel)))))
+        .thenReturn(EitherT(Future.successful(Right(MpeResponse(responseModel)))))
 
-      when(mockMembersLookUpValidator.validate(any(), any()))
+      when(mockMembersLookUpValidator.validate(any()))
         .thenReturn(Right(requestObject))
 
       val request = FakeRequest(
@@ -109,9 +108,9 @@ class MembersLookUpControllerSpec extends UnitBaseSpec {
         s"with code $error from backend" in {
 
           when(mockMembersLookUpOrchestrator.checkAndRetrieve(any(), any())(any()))
-            .thenReturn(EitherT(Future.successful(Left(ErrorWrapper(correlationId, MpeError(error, "error message"))))))
+            .thenReturn(EitherT(Future.successful(Left(MpeError(error, "error message")))))
 
-          when(mockMembersLookUpValidator.validate(any(), any()))
+          when(mockMembersLookUpValidator.validate(any()))
             .thenReturn(Right(requestObject))
 
           val request = FakeRequest(
