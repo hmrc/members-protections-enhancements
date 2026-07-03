@@ -1,7 +1,7 @@
 
-# members-protections-enhancements
+# Members Protections Enhancements
 
-Backend microservice for Members Protection Enhancement project. This microservice provides APIs for MPE frontend application, a look-up service that allows
+Backend microservice for Members Protections Enhancement service. This microservice provides APIs for MPE frontend application, a look-up service that allows
 individuals to see all their protections online, and allow the PSA authenticated online access to view the protections for their members (individuals).
 
 ## Running the service locally
@@ -49,8 +49,9 @@ To stop services:
 sm2 --stop MPE_ALL
 ```
 
-### Publishing
-Generating the OAS does not automatically publish it. If the new changes warrant publication e.g. endpoints introduced/deprecated, the validated OAS needs to replace the application.yaml file in 'resources/public/api/conf/1.0'. The API Platform will detect the new changes and process the file for publication on Developer Hub.
+## API Endpoints
+
+- [Check And Retrieve](api-docs/checkAndRetrieve.md): `POST /check-and-retrieve`
 
 ### License
 
