@@ -25,7 +25,8 @@ case class ProtectionRecord(
   protectedAmount: Option[Int],
   lumpSumAmount: Option[Int],
   lumpSumPercentage: Option[Int],
-  enhancementFactor: Option[BigDecimal]
+  enhancementFactor: Option[BigDecimal],
+  pensionCreditLegislation: Option[String]
 )
 
 object ProtectionRecord {
