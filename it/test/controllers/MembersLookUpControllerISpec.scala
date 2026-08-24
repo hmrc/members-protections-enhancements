@@ -104,7 +104,8 @@ class MembersLookUpControllerISpec extends ItBaseSpec {
         |     "protectedAmount": 1,
         |     "lumpSumAmount": 1,
         |     "lumpSumPercentage": 1,
-        |     "enhancementFactor": 0.5
+        |     "enhancementFactor": 0.5,
+        |     "pensionCreditLegislation": "some-Legislation"
         |   }
         | ]
         |}
@@ -119,7 +120,8 @@ class MembersLookUpControllerISpec extends ItBaseSpec {
           protectedAmount = Some(1),
           lumpSumAmount = Some(1),
           lumpSumPercentage = Some(1),
-          enhancementFactor = Some(0.5)
+          enhancementFactor = Some(0.5),
+          pensionCreditLegislation = Some("some-Legislation")
         )
       )
     )
