@@ -84,7 +84,7 @@ class IdentifierActionImpl @Inject() (
             logger.warn("Authorisation bearer token could not be found")
             Future.successful(Unauthorized(Json.toJson(InvalidBearerTokenError)))
           case _: AuthorisationException =>
-            logger.warn(s"An authorisation error occurred")
+            logger.warn("An authorisation error occurred")
             Future.successful(Unauthorized(Json.toJson(UnauthorisedError)))
           case _: UnauthorizedException =>
             logger.error("An unexpected authorisation error occurred")

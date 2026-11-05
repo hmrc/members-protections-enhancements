@@ -50,7 +50,7 @@ class MembersLookUpOrchestrator @Inject() (
             Right(details)
         }
       case MpeResponse(`NO MATCH`) =>
-        logger.warn(s"Could not match supplied member details")
+        logger.warn("Could not match supplied member details")
         EitherT[Future, MpeError, MpeResponse[ProtectionRecordDetails]](
           Future.successful(Left(NoMatchError))
         )

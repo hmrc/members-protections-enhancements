@@ -55,7 +55,7 @@ abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions with Log
           Right[MpeError, MpeResponse[Rds]](MpeResponse(value)).withLeft
         case JsError(errors) =>
           logger.error(
-            s"Failed to parse response body JSON to expected format",
+            "Failed to parse response body JSON to expected format",
             JsResultException(errors)
           )
           Left(InternalFaultError)
@@ -63,7 +63,7 @@ abstract class BaseNpsConnector[Resp: Reads] extends HttpErrorFunctions with Log
     catch {
       case ex: Throwable =>
         logger.error(
-          s"Failed to parse response body string to JSON",
+          "Failed to parse response body string to JSON",
           ex
         )
         Left(InternalFaultError)
